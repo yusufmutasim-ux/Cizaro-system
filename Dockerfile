@@ -14,7 +14,7 @@ COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/node_modules ./node_modules
-VOLUME /data
+# Data lives in /data: attach a volume there (Railway forbids VOLUME in Dockerfiles).
 EXPOSE 3000
 # Create/upgrade tables, make sure the manager account exists, then start.
 CMD ["sh", "-c", "npx prisma db push --skip-generate && (node prisma/seed.mjs || true) && node server.js"]
