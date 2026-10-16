@@ -48,9 +48,18 @@ docker run -d -p 3000:3000 --env-file .env -v cizaro-data:/data cizaro-studio
 
 الـ volume `/data` فيه قاعدة البيانات والملفات المرفوعة، فخد منه backup بشكل دوري.
 
-### Railway / Render
+### Railway
 
-اربط الريبو، ضيف المتغيرات اللي في `.env.example`، وضيف Volume على `/data` مع `DATABASE_URL=file:/data/cizaro.db` و `STORAGE_DIR=/data/storage`.
+الريبو جاهز (`railway.json` + `Dockerfile`):
+
+1. من [railway.com/new](https://railway.com/new) اختار **Deploy from GitHub repo** وبعدين `Cizaro-system`.
+2. في الـ service افتح **Variables** وضيف:
+   - `SESSION_SECRET`: نص عشوائي طويل (32 حرف أو أكتر)
+   - `ADMIN_NAME`، `ADMIN_EMAIL`، `ADMIN_PASSWORD`: حساب المدير
+3. كليك يمين على الـ service ← **Attach Volume** واكتب Mount path: `/data` (هنا بتتحفظ قاعدة البيانات والملفات، ومن غيره كل حاجة بتتمسح مع كل deploy).
+4. من **Settings ← Networking** دوس **Generate Domain**.
+
+مع كل تشغيل، السيرفر بيحدّث الجداول وبيتأكد إن حساب المدير موجود بالباسورد اللي في `ADMIN_PASSWORD`.
 
 ### Vercel
 

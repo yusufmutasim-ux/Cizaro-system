@@ -4,19 +4,17 @@ RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+RUN npm run build && npm prune --omit=dev
 
 FROM node:22-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
-ENV NODE_ENV=production PORT=3000 DATABASE_URL=file:/data/cizaro.db STORAGE_DIR=/data/storage
+ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 DATABASE_URL=file:/data/cizaro.db STORAGE_DIR=/data/storage
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/prisma ./prisma
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=build /app/node_modules/prisma ./node_modules/prisma
-COPY --from=build /app/node_modules/bcryptjs ./node_modules/bcryptjs
+COPY --from=build /app/node_modules ./node_modules
 VOLUME /data
 EXPOSE 3000
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js db push --skip-generate && node prisma/seed.mjs; node server.js"]
+# Create/upgrade tables, make sure the manager account exists, then start.
+CMD ["sh", "-c", "npx prisma db push --skip-generate && (node prisma/seed.mjs || true) && node server.js"]
