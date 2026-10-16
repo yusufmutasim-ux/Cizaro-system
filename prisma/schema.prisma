@@ -16,18 +16,20 @@ model User {
   passwordHash String
   role         String     @default("DESIGNER") // MANAGER | DESIGNER
   active       Boolean    @default(true)
+  locale       String     @default("ar") // ar | en, also used for notifications
   createdAt    DateTime   @default(now())
   assigned     Task[]     @relation("assignee")
   created      Task[]     @relation("creator")
   activity     Activity[]
   files        File[]
+  pushSubs     PushSubscription[]
 }
 
 model Task {
   id          Int        @id @default(autoincrement())
   title       String
   brief       String     @default("")
-  type        String     @default("سوشيال بوست")
+  type        String     @default("social")
   size        String     @default("")
   due         String?    // YYYY-MM-DD
   priority    String     @default("normal") // low | normal | high | urgent
@@ -79,4 +81,22 @@ model File {
   createdAt    DateTime @default(now())
 
   @@index([taskId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Small key/value store (holds the auto-generated VAPID keys for push notifications)
+model Setting {
+  key   String @id
+  value String
 }

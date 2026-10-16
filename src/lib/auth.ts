@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
+import { isLocale, type Locale } from "./i18n";
 
 export const COOKIE = "cz_session";
 const MAX_AGE = 60 * 60 * 24 * 30;
@@ -31,12 +32,12 @@ export async function setSessionCookie(userId: string) {
   });
 }
 
-export type SessionUser = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER" };
+export type SessionUser = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; locale: Locale };
 
 export async function currentUser(): Promise<SessionUser | null> {
   const id = await verifySession((await cookies()).get(COOKIE)?.value);
   if (!id) return null;
-  const u = await prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, role: true, active: true } });
+  const u = await prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, role: true, active: true, locale: true } });
   if (!u || !u.active) return null;
-  return { id: u.id, name: u.name, email: u.email, role: u.role === "MANAGER" ? "MANAGER" : "DESIGNER" };
+  return { id: u.id, name: u.name, email: u.email, role: u.role === "MANAGER" ? "MANAGER" : "DESIGNER", locale: isLocale(u.locale) ? u.locale : "ar" };
 }

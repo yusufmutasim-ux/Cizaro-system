@@ -1,11 +1,13 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Nav } from "./Nav";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Shell } from "./Shell";
 import { Avatar } from "./Avatar";
 import { I, type IconName } from "./Icons";
+import { useI18n } from "./I18n";
 import TaskSheet from "./TaskSheet";
-import { STATUSES, S, ref, type Status } from "@/lib/vocab";
-import { api, dayDiff, dueInfo, fmtLong, isOpen, today, type Task, type User } from "@/lib/client";
+import { STATUSES, ref, statusColor, type Status } from "@/lib/vocab";
+import { api, dayDiff, isOpen, today, type Task, type User } from "@/lib/client";
 
 type Tile = "today" | "late" | "review" | "mine";
 const PRANK: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -19,6 +21,10 @@ function sortTasks(a: Task, b: Task) {
 }
 
 export default function Studio({ me }: { me: User }) {
+  const i = useI18n();
+  const { t } = i;
+  const router = useRouter();
+  const params = useSearchParams();
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [view, setView] = useState<"board" | "list">("board");
@@ -47,15 +53,21 @@ export default function Studio({ me }: { me: User }) {
     load();
     api<User[]>("/api/users").then(setUsers).catch(() => {});
     try { const v = localStorage.getItem("cz-view"); if (v === "board" || v === "list") setView(v); else if (matchMedia("(max-width: 640px)").matches) setView("list"); } catch {}
-    const t = setInterval(() => { if (document.visibilityState === "visible") load(); }, 10000);
+    const iv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 10000);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
-    return () => { clearInterval(t); window.removeEventListener("focus", onFocus); };
+    return () => { clearInterval(iv); window.removeEventListener("focus", onFocus); };
   }, [load]);
+
+  // Opening a notification lands on /?task=<id>
+  useEffect(() => {
+    const id = Number(params.get("task"));
+    if (id) { setOpen(id); router.replace("/", { scroll: false }); }
+  }, [params, router]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (document.activeElement?.tagName || "");
+      const tag = document.activeElement?.tagName || "";
       if (e.key === "n" && open === null && !/INPUT|TEXTAREA|SELECT/.test(tag)) { e.preventDefault(); setOpen("draft"); }
     };
     document.addEventListener("keydown", onKey);
@@ -65,69 +77,68 @@ export default function Studio({ me }: { me: User }) {
   const userById = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
   const all = tasks ?? [];
 
-  const tileMatch = (t: Task, k: Tile) => {
+  const tileMatch = (x: Task, k: Tile) => {
     const td = today();
-    if (k === "today") return isOpen(t) && t.due === td;
-    if (k === "late") return isOpen(t) && !!t.due && t.due < td;
-    if (k === "review") return t.status === "review";
-    return isOpen(t) && t.assigneeId === me.id;
+    if (k === "today") return isOpen(x) && x.due === td;
+    if (k === "late") return isOpen(x) && !!x.due && x.due < td;
+    if (k === "review") return x.status === "review";
+    return isOpen(x) && x.assigneeId === me.id;
   };
 
-  const visible = all.filter((t) => {
-    const ql = q.trim().toLowerCase();
-    return (!tile || tileMatch(t, tile)) &&
-      (!fAssignee || (fAssignee === "_none" ? !t.assigneeId : t.assigneeId === fAssignee)) &&
-      (!fType || t.type === fType) &&
-      (!ql || [t.title, t.brief, t.type, ref(t.id), userById[t.assigneeId ?? ""]?.name ?? ""].join(" ").toLowerCase().includes(ql));
-  });
+  const ql = q.trim().toLowerCase();
+  const visible = all.filter((x) =>
+    (!tile || tileMatch(x, tile)) &&
+    (!fAssignee || (fAssignee === "_none" ? !x.assigneeId : x.assigneeId === fAssignee)) &&
+    (!fType || x.type === fType) &&
+    (!ql || [x.title, x.brief, i.type(x.type), ref(x.id), userById[x.assigneeId ?? ""]?.name ?? ""].join(" ").toLowerCase().includes(ql)));
 
-  async function move(t: Task, to: Status) {
-    if (t.status === to) return;
-    if (to === "changes") { setOpen(t.id); say("اكتب التعديلات المطلوبة من خانة المراجعة"); return; }
-    if (to === "done" && !isManager) { say("الاعتماد للمدير بس. ابعته للمراجعة."); return; }
-    setTasks((ts) => ts && ts.map((x) => (x.id === t.id ? { ...x, status: to } : x)));
+  async function move(x: Task, to: Status) {
+    if (x.status === to) return;
+    if (to === "changes") { setOpen(x.id); say(t("toast.writeChanges")); return; }
+    if (to === "done" && !isManager) { say(t("toast.approveManager")); return; }
+    setTasks((ts) => ts && ts.map((y) => (y.id === x.id ? { ...y, status: to } : y)));
     try {
-      await api(`/api/tasks/${t.id}/status`, { method: "POST", json: { status: to } });
-      say(`اتنقل لـ «${S[to].l}»`);
+      await api(`/api/tasks/${x.id}/status`, { method: "POST", json: { status: to } });
+      say(t("toast.moved", { s: i.status(to) }));
     } catch (e) { say((e as Error).message); }
     load();
   }
 
-  const tiles: { k: Tile; t: string; ic: IconName; c: string }[] = [
-    { k: "today", t: "النهارده", ic: "today", c: "var(--blue)" },
-    { k: "late", t: "متأخرة", ic: "warn", c: "var(--red)" },
-    { k: "review", t: "مستنية مراجعة", ic: "eye", c: "var(--purple)" },
-    { k: "mine", t: "تاسكاتي", ic: "person", c: "var(--orange)" },
+  const tiles: { k: Tile; ic: IconName; c: string }[] = [
+    { k: "today", ic: "today", c: "var(--blue)" },
+    { k: "late", ic: "warn", c: "var(--red)" },
+    { k: "review", ic: "eye", c: "var(--purple)" },
+    { k: "mine", ic: "person", c: "var(--orange)" },
   ];
-  const usedTypes = [...new Set(all.map((t) => t.type))];
-  const assigned = [...new Set(all.map((t) => t.assigneeId).filter(Boolean))] as string[];
+  const usedTypes = [...new Set(all.map((x) => x.type))];
+  const assigned = [...new Set(all.map((x) => x.assigneeId).filter(Boolean))] as string[];
   const filtered = !!(tile || fAssignee || fType || q);
   const clear = () => { setTile(""); setFAssignee(""); setFType(""); setQ(""); };
 
-  const card = (t: Task) => {
-    const di = dueInfo(t);
-    const a = t.assigneeId ? userById[t.assigneeId] : null;
+  const card = (x: Task) => {
+    const di = i.due(x);
+    const a = x.assigneeId ? userById[x.assigneeId] : null;
     return (
-      <article key={t.id} className={`card ${dragId === t.id ? "dragging" : ""}`} tabIndex={0} role="button" draggable
-        onDragStart={(e) => { setDragId(t.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(t.id)); }}
+      <article key={x.id} className={`card ${dragId === x.id ? "dragging" : ""}`} tabIndex={0} role="button" draggable
+        onDragStart={(e) => { setDragId(x.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(x.id)); }}
         onDragEnd={() => { setDragId(null); setOverCol(null); }}
-        onClick={() => setOpen(t.id)} onKeyDown={(e) => { if (e.key === "Enter") setOpen(t.id); }}>
-        {t.coverFileId && <div className="cover"><img src={`/api/files/${t.coverFileId}`} alt="" loading="lazy" /></div>}
+        onClick={() => setOpen(x.id)} onKeyDown={(e) => { if (e.key === "Enter") setOpen(x.id); }}>
+        {x.coverFileId && <div className="cover"><img src={`/api/files/${x.coverFileId}`} alt="" loading="lazy" /></div>}
         <div className="card-top">
-          <span>{t.type}</span>
-          {t.priority === "urgent" && <span className="flag"><I name="flag" />عاجل</span>}
-          {t.priority === "high" && <span className="flag high"><I name="flag" />عالية</span>}
-          <span className="ref">{ref(t.id)}</span>
+          <span>{i.type(x.type)}</span>
+          {x.priority === "urgent" && <span className="flag"><I name="flag" />{i.priority("urgent")}</span>}
+          {x.priority === "high" && <span className="flag high"><I name="flag" />{i.priority("high")}</span>}
+          <span className="ref">{ref(x.id)}</span>
         </div>
-        <h3>{t.title}</h3>
+        <h3>{x.title}</h3>
         <div className="meta">
           {di && <span className={`chip ${di.cls}`}><I name="cal" />{di.label}</span>}
-          {t.size && <span className="chip size">{t.size}</span>}
-          {t.revisions > 0 && <span className="chip rev">R{t.revisions}</span>}
-          {t._count.files > 0 && <span className="chip"><I name="clip" />{t._count.files}</span>}
-          {t._count.activity > 0 && <span className="chip"><I name="list" />{t._count.activity}</span>}
+          {x.size && <span className="chip size">{x.size}</span>}
+          {x.revisions > 0 && <span className="chip rev">R{x.revisions}</span>}
+          {x._count.files > 0 && <span className="chip"><I name="clip" />{x._count.files}</span>}
+          {x._count.activity > 0 && <span className="chip"><I name="list" />{x._count.activity}</span>}
         </div>
-        <div className="card-foot"><Avatar user={a} /><span>{a ? a.name : "مش متعيّن"}</span></div>
+        <div className="card-foot"><Avatar user={a} /><span>{a ? a.name : t("card.unassigned")}</span></div>
       </article>
     );
   };
@@ -136,18 +147,18 @@ export default function Studio({ me }: { me: User }) {
     return (
       <div className="board-scroll"><div className="board">
         {STATUSES.map((s) => {
-          const items = visible.filter((t) => t.status === s.k).sort(sortTasks);
+          const items = visible.filter((x) => x.status === s.k).sort(sortTasks);
           return (
-            <section key={s.k} className={`col ${overCol === s.k ? "over" : ""}`} aria-label={s.l}
+            <section key={s.k} className={`col ${overCol === s.k ? "over" : ""}`} aria-label={i.status(s.k)}
               onDragOver={(e) => { if (dragId !== null) { e.preventDefault(); setOverCol(s.k); } }}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverCol(null); }}
-              onDrop={(e) => { e.preventDefault(); setOverCol(null); const t = all.find((x) => x.id === dragId); if (t) move(t, s.k); }}>
+              onDrop={(e) => { e.preventDefault(); setOverCol(null); const x = all.find((y) => y.id === dragId); if (x) move(x, s.k); }}>
               <div className="col-h">
-                <span className="sd" style={{ background: s.c }} />{s.l}<span className="c">{items.length}</span>
-                {s.k === "new" && <button type="button" className="add" aria-label="تاسك جديد" onClick={() => setOpen("draft")}><I name="plus" /></button>}
+                <span className="sd" style={{ background: s.c, color: s.c }} />{i.status(s.k)}<span className="c">{items.length}</span>
+                {s.k === "new" && <button type="button" className="add" aria-label={t("nav.new")} onClick={() => setOpen("draft")}><I name="plus" /></button>}
               </div>
               <div className="col-b">
-                {items.length ? items.map(card) : <div className="col-empty">{s.k === "new" ? "مفيش طلبات جديدة" : "اسحب تاسك هنا"}</div>}
+                {items.length ? items.map(card) : <div className="col-empty">{s.k === "new" ? t("col.emptyNew") : t("col.emptyDrop")}</div>}
               </div>
             </section>
           );
@@ -157,13 +168,13 @@ export default function Studio({ me }: { me: User }) {
   }
 
   function list() {
-    const groups: { t: string; f: (t: Task) => boolean }[] = [
-      { t: "متأخرة", f: (t) => isOpen(t) && !!t.due && dayDiff(t.due) < 0 },
-      { t: "النهارده وبكرة", f: (t) => isOpen(t) && !!t.due && dayDiff(t.due) >= 0 && dayDiff(t.due) <= 1 },
-      { t: "الأسبوع ده", f: (t) => isOpen(t) && !!t.due && dayDiff(t.due) > 1 && dayDiff(t.due) <= 7 },
-      { t: "بعدين", f: (t) => isOpen(t) && !!t.due && dayDiff(t.due) > 7 },
-      { t: "من غير ميعاد", f: (t) => isOpen(t) && !t.due },
-      { t: "اتسلّمت", f: (t) => !isOpen(t) },
+    const groups: { k: Parameters<typeof t>[0]; f: (x: Task) => boolean }[] = [
+      { k: "list.late", f: (x) => isOpen(x) && !!x.due && dayDiff(x.due) < 0 },
+      { k: "list.soon", f: (x) => isOpen(x) && !!x.due && dayDiff(x.due) >= 0 && dayDiff(x.due) <= 1 },
+      { k: "list.week", f: (x) => isOpen(x) && !!x.due && dayDiff(x.due) > 1 && dayDiff(x.due) <= 7 },
+      { k: "list.later", f: (x) => isOpen(x) && !!x.due && dayDiff(x.due) > 7 },
+      { k: "list.noDate", f: (x) => isOpen(x) && !x.due },
+      { k: "list.done", f: (x) => !isOpen(x) },
     ];
     return (
       <div className="list">
@@ -171,24 +182,24 @@ export default function Studio({ me }: { me: User }) {
           const items = visible.filter(g.f).sort(sortTasks);
           if (!items.length) return null;
           return (
-            <div key={g.t}>
-              <div className="list-sec">{g.t} · {items.length}</div>
-              {items.map((t) => {
-                const di = dueInfo(t), s = S[t.status as Status] ?? S.new, a = t.assigneeId ? userById[t.assigneeId] : null;
+            <div key={g.k}>
+              <div className="list-sec">{t(g.k)} · {items.length}</div>
+              {items.map((x) => {
+                const di = i.due(x), c = statusColor(x.status), a = x.assigneeId ? userById[x.assigneeId] : null;
                 return (
-                  <button type="button" key={t.id} className="row" onClick={() => setOpen(t.id)}>
-                    <span className={`ring ${t.status === "done" ? "done" : ""}`} style={{ ["--ring" as string]: s.c }}>{t.status === "done" && <I name="check" />}</span>
+                  <button type="button" key={x.id} className="row" onClick={() => setOpen(x.id)}>
+                    <span className={`ring ${x.status === "done" ? "done" : ""}`} style={{ ["--ring" as string]: c }}>{x.status === "done" && <I name="check" />}</span>
                     <span style={{ minWidth: 0 }}>
-                      <span className="rt">{t.title}</span>
+                      <span className="rt">{x.title}</span>
                       <span className="rm">
-                        <span className="chip" style={{ color: s.c }}>{s.l}</span>
+                        <span className="chip" style={{ color: c }}>{i.status(x.status)}</span>
                         {di && <span className={`chip ${di.cls}`}><I name="cal" />{di.label}</span>}
-                        <span className="chip">{t.type}</span>
-                        {t.revisions > 0 && <span className="chip rev">R{t.revisions}</span>}
-                        {t.priority === "urgent" && <span className="flag"><I name="flag" />عاجل</span>}
+                        <span className="chip">{i.type(x.type)}</span>
+                        {x.revisions > 0 && <span className="chip rev">R{x.revisions}</span>}
+                        {x.priority === "urgent" && <span className="flag"><I name="flag" />{i.priority("urgent")}</span>}
                       </span>
                     </span>
-                    <span className="rr"><Avatar user={a} /><span className="nm" style={{ color: "var(--label-2)", fontSize: 13 }}>{a?.name}</span></span>
+                    <span className="rr"><Avatar user={a} /><span className="nm" style={{ color: "var(--ink-2)", fontSize: 13 }}>{a?.name}</span></span>
                   </button>
                 );
               })}
@@ -200,60 +211,58 @@ export default function Studio({ me }: { me: User }) {
   }
 
   let content: React.ReactNode;
-  if (tasks === null) content = <div className="empty"><p>بيحمّل التاسكات…</p></div>;
+  if (tasks === null) content = <div className="empty"><p>{t("empty.loading")}</p></div>;
   else if (!all.length) content = (
-    <div className="empty"><div className="big"><I name="tray" /></div><h2>لسه مفيش تاسكات</h2>
-      <p>ابدأ بأول طلب تصميم: اكتب البريف، حدد المقاس وميعاد التسليم، واختار المصمم. الفريق هيشوفه هنا على طول.</p>
-      <button type="button" className="btn btn-primary" onClick={() => setOpen("draft")}><I name="plus" />أول تاسك</button></div>
+    <div className="empty"><div className="big"><I name="tray" /></div><h2>{t("empty.title")}</h2>
+      <p>{t("empty.body")}</p>
+      <button type="button" className="btn btn-primary" onClick={() => setOpen("draft")}><I name="plus" />{t("empty.cta")}</button></div>
   );
   else if (!visible.length) content = (
-    <div className="empty"><div className="big"><I name="search" /></div><h2>مفيش نتايج</h2><p>مفيش تاسكات بالفلاتر دي.</p>
-      <button type="button" className="btn btn-tinted" onClick={clear}>مسح الفلاتر</button></div>
+    <div className="empty"><div className="big"><I name="search" /></div><h2>{t("empty.noResults")}</h2><p>{t("empty.noResultsBody")}</p>
+      <button type="button" className="btn btn-tinted" onClick={clear}>{t("filter.clear")}</button></div>
   );
   else content = view === "board" ? board() : list();
 
   return (
-    <>
-      <Nav me={me}>
-        <label className="search" htmlFor="q"><I name="search" /><input id="q" type="search" placeholder="دوّر في التاسكات" autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>
-      </Nav>
+    <Shell me={me} active="tasks" onNew={() => setOpen("draft")}
+      search={<label className="search" htmlFor="q"><I name="search" /><input id="q" type="search" placeholder={t("search.placeholder")} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>}>
       <main className="wrap">
         <section className="head">
           <div>
-            <h1>التاسكات</h1>
-            <div className="sub">{fmtLong.format(new Date())} · {all.filter(isOpen).length} تاسك مفتوح</div>
+            <h1>{t("tasks.title")}</h1>
+            <div className="sub">{i.longDate(new Date())} · {t("tasks.openCount", { n: all.filter(isOpen).length })}</div>
           </div>
           <div className="actions">
-            <button className="btn btn-primary" type="button" onClick={() => setOpen("draft")}><I name="plus" />تاسك جديد</button>
+            <button className="btn btn-primary" type="button" onClick={() => setOpen("draft")}><I name="plus" />{t("nav.new")}</button>
           </div>
         </section>
 
-        <section className="tiles" aria-label="فلاتر سريعة">
+        <section className="tiles" aria-label={t("tasks.title")}>
           {tiles.map((x) => (
             <button key={x.k} type="button" className="tile" aria-pressed={tile === x.k} style={{ ["--tile-c" as string]: x.c }} onClick={() => setTile(tile === x.k ? "" : x.k)}>
               <span className="dot" style={{ background: x.c }}><I name={x.ic} /></span>
-              <span className="n">{all.filter((t) => tileMatch(t, x.k)).length}</span>
-              <span className="t">{x.t}</span>
+              <span className="n">{all.filter((y) => tileMatch(y, x.k)).length}</span>
+              <span className="t">{t(`tile.${x.k}`)}</span>
             </button>
           ))}
         </section>
 
         <div className="toolbar">
-          <div className="seg" role="group" aria-label="طريقة العرض">
+          <div className="seg" role="group" aria-label={t("view.board")}>
             {(["board", "list"] as const).map((v) => (
-              <button key={v} type="button" aria-pressed={view === v} onClick={() => { setView(v); try { localStorage.setItem("cz-view", v); } catch {} }}>{v === "board" ? "بورد" : "قائمة"}</button>
+              <button key={v} type="button" aria-pressed={view === v} onClick={() => { setView(v); try { localStorage.setItem("cz-view", v); } catch {} }}>{t(`view.${v}`)}</button>
             ))}
           </div>
-          <select className="select" id="fAssignee" aria-label="المصمم" value={fAssignee} onChange={(e) => setFAssignee(e.target.value)}>
-            <option value="">كل المصممين</option>
-            {assigned.map((id) => <option key={id} value={id}>{userById[id]?.name ?? "عضو"}</option>)}
-            <option value="_none">مش متعيّن</option>
+          <select className="select" id="fAssignee" aria-label={t("field.designer")} value={fAssignee} onChange={(e) => setFAssignee(e.target.value)}>
+            <option value="">{t("filter.allDesigners")}</option>
+            {assigned.map((id) => <option key={id} value={id}>{userById[id]?.name ?? "—"}</option>)}
+            <option value="_none">{t("filter.unassigned")}</option>
           </select>
-          <select className="select" id="fType" aria-label="النوع" value={fType} onChange={(e) => setFType(e.target.value)}>
-            <option value="">كل الأنواع</option>
-            {usedTypes.map((x) => <option key={x}>{x}</option>)}
+          <select className="select" id="fType" aria-label={t("field.type")} value={fType} onChange={(e) => setFType(e.target.value)}>
+            <option value="">{t("filter.allTypes")}</option>
+            {usedTypes.map((x) => <option key={x} value={x}>{i.type(x)}</option>)}
           </select>
-          {filtered && <div className="filter-note"><span>{visible.length} من {all.length}</span><button type="button" onClick={clear}>مسح الفلاتر</button></div>}
+          {filtered && <div className="filter-note"><span>{t("filter.count", { shown: visible.length, total: all.length })}</span><button type="button" onClick={clear}>{t("filter.clear")}</button></div>}
         </div>
 
         <section>{content}</section>
@@ -264,6 +273,6 @@ export default function Studio({ me }: { me: User }) {
           onClose={() => setOpen(null)} onChanged={load} onCreated={(id) => setOpen(id)} say={say} />
       )}
       <div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div>
-    </>
+    </Shell>
   );
 }

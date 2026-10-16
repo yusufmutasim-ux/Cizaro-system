@@ -1,15 +1,15 @@
 import { prisma } from "@/lib/db";
-import { route, json, fail } from "@/lib/api";
+import { route, json } from "@/lib/api";
 import { readUpload, removeUpload } from "@/lib/storage";
 
 type Ctx = { params: Promise<{ id: string }> };
 const INLINE = /^(image\/(png|jpeg|gif|webp|svg\+xml)|video\/(mp4|webm)|application\/pdf)$/;
 
-export const GET = route<Ctx>(async (_u, _r, { params }) => {
+export const GET = route<Ctx>(async (_u, _r, { params }, e) => {
   const f = await prisma.file.findUnique({ where: { id: (await params).id } });
-  if (!f || !f.storageKey) return fail("الملف مش موجود", 404);
+  if (!f || !f.storageKey) return e("err.noFile", 404);
   const buf = await readUpload(f.storageKey).catch(() => null);
-  if (!buf) return fail("الملف مش موجود", 404);
+  if (!buf) return e("err.noFile", 404);
   const mime = f.mime || "application/octet-stream";
   const inline = INLINE.test(mime);
   return new Response(new Uint8Array(buf), {
@@ -24,10 +24,10 @@ export const GET = route<Ctx>(async (_u, _r, { params }) => {
   });
 });
 
-export const DELETE = route<Ctx>(async (user, _r, { params }) => {
+export const DELETE = route<Ctx>(async (user, _r, { params }, e) => {
   const f = await prisma.file.findUnique({ where: { id: (await params).id } });
   if (!f) return json({ ok: true });
-  if (f.uploadedById !== user.id && user.role !== "MANAGER") return fail("تقدر تشيل الملفات اللي انت رفعتها بس", 403);
+  if (f.uploadedById !== user.id && user.role !== "MANAGER") return e("err.ownFiles", 403);
   await prisma.file.delete({ where: { id: f.id } });
   if (f.storageKey) await removeUpload(f.storageKey);
   const task = await prisma.task.findUnique({ where: { id: f.taskId }, select: { coverFileId: true } });
