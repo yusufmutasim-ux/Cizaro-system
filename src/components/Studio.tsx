@@ -7,7 +7,7 @@ import { I, type IconName } from "./Icons";
 import { useI18n } from "./I18n";
 import TaskSheet from "./TaskSheet";
 import { Segmented, useFlip } from "./Motion";
-import { BrandMark } from "./BrandMark";
+import { BrandMark, BrandSignature, useBrandTheme } from "./BrandMark";
 import { STATUSES, ref, statusColor, type Status } from "@/lib/vocab";
 import { api, dayDiff, isOpen, today, type Brand, type Task, type User } from "@/lib/client";
 
@@ -22,7 +22,7 @@ function sortTasks(a: Task, b: Task) {
   return b.createdAt.localeCompare(a.createdAt);
 }
 
-export default function Studio({ me }: { me: User }) {
+export default function Studio({ me, storageWarning = false }: { me: User; storageWarning?: boolean }) {
   const i = useI18n();
   const { t } = i;
   const router = useRouter();
@@ -85,6 +85,8 @@ export default function Studio({ me }: { me: User }) {
   const userById = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
   const brandById = useMemo(() => Object.fromEntries(brands.map((b) => [b.id, b])), [brands]);
   const all = (tasks ?? []).filter((x) => brand === "all" || x.brandId === brand);
+  const current = brand === "all" ? null : brandById[brand];
+  useBrandTheme(current);
   const pickBrand = (b: string) => { setBrand(b); try { localStorage.setItem("cz-brand", b); } catch {} };
 
   const tileMatch = (x: Task, k: Tile) => {
@@ -245,6 +247,7 @@ export default function Studio({ me }: { me: User }) {
       <main className="wrap">
         <section className="head">
           <div>
+            {current && <BrandSignature key={current.id} brand={current} />}
             <h1>{t("tasks.title")}</h1>
             <div className="sub">{i.longDate(new Date())} · {t("tasks.openCount", { n: all.filter(isOpen).length })}</div>
           </div>
@@ -253,10 +256,14 @@ export default function Studio({ me }: { me: User }) {
           </div>
         </section>
 
+        {storageWarning && (
+          <div className="banner danger" role="alert"><I name="warn" /><span><b>{t("warn.storageTitle")}</b> {t("warn.storageBody")}</span></div>
+        )}
+
         {brands.length > 0 && (
           <div className="brand-tabs">
             <Segmented label={t("field.brand")} value={brand} onChange={pickBrand} className="brand-seg"
-              options={[...brands.map((b) => ({ value: b.id, label: <><BrandMark brand={b} size={22} />{b.name}</> })), { value: "all", label: t("brand.all") }]} />
+              options={[...brands.map((b) => ({ value: b.id, label: <><BrandMark brand={b} size={22} />{b.slug === "dym" ? <span className="sr-only">{b.name}</span> : b.name}</> })), { value: "all", label: t("brand.all") }]} />
           </div>
         )}
 

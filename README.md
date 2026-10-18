@@ -61,7 +61,8 @@ docker run -d -p 3000:3000 --env-file .env -v cizaro-data:/data cizaro-studio
 2. في الـ service افتح **Variables** وضيف:
    - `SESSION_SECRET`: نص عشوائي طويل (32 حرف أو أكتر)
    - `ADMIN_NAME`، `ADMIN_EMAIL`، `ADMIN_PASSWORD`: حساب المدير
-3. كليك يمين على الـ service ← **Attach Volume** واكتب Mount path: `/data` (هنا بتتحفظ قاعدة البيانات والملفات، ومن غيره كل حاجة بتتمسح مع كل deploy).
+3. كليك يمين على الـ service ← **Attach Volume** واكتب Mount path: `/data` (هنا بتتحفظ قاعدة البيانات والملفات، ومن غيره كل حاجة بتتمسح مع كل deploy). السيرفر بيستخدم الـ Volume تلقائياً أياً كان مكانه، ولو مفيش Volume بيظهر تحذير أحمر للمدير جوه التطبيق.
+   - متضيفش `DATABASE_URL` في Railway إلا لو هتستخدم Postgres.
 4. من **Settings ← Networking** دوس **Generate Domain**.
 
 مع كل تشغيل، السيرفر بيحدّث الجداول وبيتأكد إن حساب المدير موجود بالباسورد اللي في `ADMIN_PASSWORD`.

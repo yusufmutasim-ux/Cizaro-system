@@ -41,3 +41,6 @@ export async function currentUser(): Promise<SessionUser | null> {
   if (!u || !u.active) return null;
   return { id: u.id, name: u.name, email: u.email, role: u.role === "MANAGER" ? "MANAGER" : "DESIGNER", locale: isLocale(u.locale) ? u.locale : "ar" };
 }
+
+/** True on Railway when no volume is attached, i.e. the next deploy will wipe all data. */
+export const storageAtRisk = () => !!(process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_PROJECT_ID) && !process.env.RAILWAY_VOLUME_MOUNT_PATH;
