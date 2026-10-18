@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Shell } from "./Shell";
+import { useApp } from "./App";
+import { useData } from "@/lib/cache";
 import { I, type IconName } from "./Icons";
 import { useI18n } from "./I18n";
 import { Segmented, useFlip } from "./Motion";
@@ -21,12 +22,17 @@ const SECTIONS: { k: Cat; icon: IconName; accept?: string }[] = [
 const href = (a: BrandAsset, download = false) => `/api/brand-assets/${a.id}${download ? "?download=1" : ""}`;
 const ext = (n: string) => (n.split(".").pop() ?? "").toUpperCase().slice(0, 5);
 
-export default function BrandKit({ me }: { me: User }) {
+export default function BrandKit() {
+  const { me } = useApp();
   const { t } = useI18n();
   const isManager = me.role === "MANAGER";
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [brandId, setBrandId] = useState("");
-  const [assets, setAssets] = useState<BrandAsset[] | null>(null);
+  const brandsQ = useData<Brand[]>("/api/brands");
+  const brands = brandsQ.data ?? [];
+  const setBrands = brandsQ.mutate;
+  const [picked, setBrandId] = useState(() => { try { return localStorage.getItem("cz-brand") || ""; } catch { return ""; } });
+  const brandId = brands.some((b) => b.id === picked) ? picked : brands[0]?.id ?? "";
+  const assetsQ = useData<BrandAsset[]>(brandId ? `/api/brands/${brandId}/assets` : null);
+  const assets = assetsQ.data ?? null;
   const [toast, setToast] = useState("");
   const [uploading, setUploading] = useState<Partial<Record<Cat, number>>>({});
   const [armed, setArmed] = useState<string | null>(null);
@@ -40,23 +46,13 @@ export default function BrandKit({ me }: { me: User }) {
   }, []);
 
   const loadBrands = useCallback(async (select?: string) => {
-    const bs = await api<Brand[]>("/api/brands");
-    setBrands(bs);
-    setBrandId((cur) => {
-      if (select) return select;
-      if (cur && bs.some((b) => b.id === cur)) return cur;
-      try { const s = localStorage.getItem("cz-brand"); if (s && bs.some((b) => b.id === s)) return s; } catch {}
-      return bs[0]?.id ?? "";
-    });
-  }, []);
+    await brandsQ.reload();
+    if (select) setBrandId(select);
+  }, [brandsQ]);
 
   const loadAssets = useCallback(async () => {
-    if (!brandId) return;
-    try { setAssets(await api<BrandAsset[]>(`/api/brands/${brandId}/assets`)); } catch (e) { say((e as Error).message); }
-  }, [brandId, say]);
-
-  useEffect(() => { loadBrands().catch((e) => say(e.message)); }, [loadBrands, say]);
-  useEffect(() => { setAssets(null); loadAssets(); }, [loadAssets]);
+    try { await assetsQ.reload(); } catch (e) { say((e as Error).message); }
+  }, [assetsQ, say]);
 
   const brand = brands.find((b) => b.id === brandId);
   useBrandTheme(brand);
@@ -110,7 +106,7 @@ export default function BrandKit({ me }: { me: User }) {
   async function setBrandColor(c: string) {
     if (!brand) return;
     const id = brand.id;
-    setBrands((bs) => bs.map((b) => (b.id === id ? { ...b, color: c } : b)));
+    setBrands((bs) => (bs ?? []).map((b) => (b.id === id ? { ...b, color: c } : b)));
     clearTimeout(colorT.current);
     colorT.current = setTimeout(() => api(`/api/brands/${id}`, { method: "PATCH", json: { color: c } }).catch((e) => say(e.message)), 400);
   }
@@ -223,7 +219,7 @@ export default function BrandKit({ me }: { me: User }) {
   }
 
   return (
-    <Shell me={me} active="brands">
+    <>
       {fontCss && <style>{fontCss}</style>}
       <main className="wrap">
         <section className="head">
@@ -277,6 +273,6 @@ export default function BrandKit({ me }: { me: User }) {
         )}
       </main>
       <div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div>
-    </Shell>
+    </>
   );
 }

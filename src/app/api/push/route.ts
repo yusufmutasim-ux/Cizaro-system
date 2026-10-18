@@ -15,7 +15,7 @@ export const POST = route(async (user, req) => {
     update: { userId: user.id, p256dh, auth },
     create: { userId: user.id, endpoint, p256dh, auth },
   });
-  if (b.test) await notify([user.id], { title: "push.test.title", body: "push.test.body", tag: "test" });
+  if (b.test) await notify([user.id], { kind: "test", title: "push.test.title", body: "push.test.body", tag: "test" });
   return json({ ok: true }, 201);
 });
 

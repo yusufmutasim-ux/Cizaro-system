@@ -1,7 +1,7 @@
 "use client";
 import type { Locale } from "./i18n";
 
-export type User = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; active?: boolean; locale?: Locale };
+export type User = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; active?: boolean; locale?: Locale; avatarAt?: string | null };
 export type Task = {
   id: number; title: string; brief: string; type: string; size: string; due: string | null; priority: string; status: string;
   revisions: number; coverFileId: string | null; brandId: string | null; assigneeId: string | null; createdById: string; createdAt: string; updatedAt: string;
