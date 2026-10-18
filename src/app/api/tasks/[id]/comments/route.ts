@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { canSee } from "@/lib/branches";
 import { route, json, str } from "@/lib/api";
 import { addActivity } from "@/lib/tasks";
 import { notify, managerIds } from "@/lib/push";
@@ -11,8 +12,8 @@ export const POST = route<Ctx>(async (user, req, { params }, e) => {
   const b = await req.json().catch(() => ({}));
   const text = str(b.text)?.trim();
   if (!text) return e("err.emptyComment");
-  const task = await prisma.task.findUnique({ where: { id }, select: { id: true, title: true, assigneeId: true, createdById: true } });
-  if (!task) return e("err.noTask", 404);
+  const task = await prisma.task.findUnique({ where: { id }, select: { id: true, title: true, assigneeId: true, createdById: true, branchId: true } });
+  if (!task || !canSee(user, task)) return e("err.noTask", 404);
   await addActivity(id, user.id, "comment", { text });
   await prisma.task.update({ where: { id }, data: { updatedAt: new Date() } });
   const to = [task.assigneeId, task.createdById, ...(user.role === "DESIGNER" ? await managerIds() : [])];

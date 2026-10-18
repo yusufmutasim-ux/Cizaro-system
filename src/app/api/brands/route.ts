@@ -4,6 +4,7 @@ import { route, json, str } from "@/lib/api";
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const brandSelect = {
   id: true, slug: true, name: true, color: true, sort: true,
+  branches: { select: { id: true, slug: true, name: true, nameEn: true, code: true }, orderBy: { sort: "asc" as const } },
   _count: { select: { assets: true } },
   assets: { where: { category: "logo", mime: { startsWith: "image/" } }, select: { id: true }, orderBy: { createdAt: "asc" as const }, take: 1 },
 } as const;

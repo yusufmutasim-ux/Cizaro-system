@@ -2,11 +2,12 @@ import { prisma } from "@/lib/db";
 import { route, json, str } from "@/lib/api";
 import { taskSelect, addActivity, brandIdOr } from "@/lib/tasks";
 import { canAssign } from "@/lib/team";
+import { taskScope, resolveBranch, sameBranch } from "@/lib/branches";
 import { notify } from "@/lib/push";
 import { PRIORITY_LABELS, normalizeType } from "@/lib/i18n";
 
-export const GET = route(async () => {
-  const tasks = await prisma.task.findMany({ select: taskSelect, orderBy: { createdAt: "desc" }, take: 2000 });
+export const GET = route(async (user) => {
+  const tasks = await prisma.task.findMany({ where: taskScope(user), select: taskSelect, orderBy: { createdAt: "desc" }, take: 2000 });
   return json(tasks.map((t) => ({ ...t, type: normalizeType(t.type) })));
 });
 
@@ -18,6 +19,9 @@ export const POST = route(async (user, req, _c, e) => {
   const assigneeId = typeof b.assigneeId === "string" && b.assigneeId ? b.assigneeId : null;
   if (assigneeId && !(await prisma.user.findUnique({ where: { id: assigneeId } }))) return e("err.noDesigner");
   if (!(await canAssign(user, null, assigneeId))) return e("err.cantAssign", 403);
+  const brandId = await brandIdOr(b.brandId);
+  const branchId = await resolveBranch(brandId, b.branchId, user);
+  if (!(await sameBranch(branchId, assigneeId))) return e("err.otherBranch");
   const task = await prisma.task.create({
     data: {
       title,
@@ -27,7 +31,8 @@ export const POST = route(async (user, req, _c, e) => {
       due,
       priority: b.priority in PRIORITY_LABELS ? b.priority : "normal",
       assigneeId,
-      brandId: await brandIdOr(b.brandId),
+      brandId,
+      branchId,
       createdById: user.id,
     },
     select: taskSelect,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { canSee } from "@/lib/branches";
 import { route, json } from "@/lib/api";
 import { addActivity } from "@/lib/tasks";
 import { saveUpload, MAX_UPLOAD } from "@/lib/storage";
@@ -10,8 +11,8 @@ type Ctx = { params: Promise<{ id: string }> };
 // Activity rows keep the file name in `text` and the slot in `toStatus`, so the UI can word them in either language.
 export const POST = route<Ctx>(async (user, req, { params }, e) => {
   const taskId = Number((await params).id);
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { id: true } });
-  if (!task) return e("err.noTask", 404);
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { id: true, branchId: true } });
+  if (!task || !canSee(user, task)) return e("err.noTask", 404);
 
   if ((req.headers.get("content-type") || "").includes("application/json")) {
     const b = await req.json().catch(() => ({}));
