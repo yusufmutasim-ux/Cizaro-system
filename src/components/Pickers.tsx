@@ -73,9 +73,9 @@ function Pop({ p, children, className = "" }: { p: ReturnType<typeof usePopover>
 export type Opt = { value: string; label: string; icon?: React.ReactNode; hint?: string; iconOnly?: boolean };
 
 /** Replacement for <select>: a glass button that opens an anchored, keyboard-friendly menu. */
-export function Picker({ value, options, onChange, label, variant = "field", placeholder, disabled, id, ltr }: {
+export function Picker({ value, options, onChange, label, variant = "field", placeholder, disabled, id, ltr, footer }: {
   value: string; options: Opt[]; onChange: (v: string) => void; label: string;
-  variant?: "field" | "pill"; placeholder?: string; disabled?: boolean; id?: string; ltr?: boolean;
+  variant?: "field" | "pill"; placeholder?: string; disabled?: boolean; id?: string; ltr?: boolean; footer?: React.ReactNode;
 }) {
   const p = usePopover();
   const [hi, setHi] = useState(0);
@@ -125,6 +125,7 @@ export function Picker({ value, options, onChange, label, variant = "field", pla
             </button>
           ))}
         </div>
+        {footer && <div className="pop-foot" onClick={() => p.setOpen(false)}>{footer}</div>}
       </Pop>
     </>
   );

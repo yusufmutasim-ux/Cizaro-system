@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar } from "./Avatar";
 import { I } from "./Icons";
@@ -338,6 +339,9 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
                 <div className="field"><span className="fi" style={{ background: "var(--blue)" }}><I name="person" /></span><label htmlFor="fAs">{t("field.designer")}</label>
                   <div className="fv">
                     <Picker id="fAs" label={t("field.designer")} value={form.assigneeId} disabled={!assignable.canChange} onChange={(v) => set("assigneeId", v, mode("now"))}
+                      footer={isManager && users.filter((u) => u.active !== false && u.id !== me.id).length === 0
+                        ? <Link href="/team" className="pop-cta" onClick={close}><I name="people" /><span><b>{t("assign.addMembers")}</b><small>{t("assign.addMembersHint")}</small></span></Link>
+                        : undefined}
                       options={[...(assignable.canClear ? [{ value: "", label: t("card.unassigned"), icon: <Avatar user={null} /> }] : []),
                         ...users.filter((u) => (u.active !== false && assignable.allowed(u.id)) || u.id === form.assigneeId)
                           .map((u) => ({ value: u.id, label: u.name + (u.id === me.id ? ` ${t("field.you")}` : ""), icon: <Avatar user={u} /> }))]} />
