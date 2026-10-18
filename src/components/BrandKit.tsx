@@ -2,7 +2,8 @@
 import { Portal } from "./Portal";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "./App";
-import { useData } from "@/lib/cache";
+import { Picker } from "./Pickers";
+import { useData, revalidate } from "@/lib/cache";
 import { I, type IconName } from "./Icons";
 import { useI18n } from "./I18n";
 import { Segmented, useFlip } from "./Motion";
@@ -40,6 +41,8 @@ export default function BrandKit() {
   const [color, setColor] = useState({ name: "", value: "#3B47B0" });
   const [newBrand, setNewBrand] = useState<{ name: string; color: string } | null>(null);
   const toastT = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [delBrand, setDelBrand] = useState<string | null>(null); // null = closed; otherwise the brand tasks move to
+  const [deleting, setDeleting] = useState(false);
   const colorT = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const say = useCallback((m: string) => {
@@ -102,6 +105,22 @@ export default function BrandKit() {
     if (!newBrand) return;
     try { const b = await api<Brand>("/api/brands", { method: "POST", json: newBrand }); setNewBrand(null); await loadBrands(b.id); pick(b.id); }
     catch (err) { say((err as Error).message); }
+  }
+
+  async function deleteBrand() {
+    if (!brand) return;
+    setDeleting(true);
+    try {
+      const n = brand._count?.tasks ?? 0;
+      await api(`/api/brands/${brand.id}${n ? `?moveTo=${encodeURIComponent(delBrand ?? "")}` : ""}`, { method: "DELETE" });
+      say(n ? t("kit.deleteBrandMoved", { n }) : t("kit.deleteBrandDone"));
+      setDelBrand(null);
+      const next = n ? delBrand! : brands.find((b) => b.id !== brand.id)?.id ?? "";
+      pick(next);
+      await brandsQ.reload();
+      revalidate("/api/tasks").catch(() => {});
+    } catch (e) { say((e as Error).message); }
+    setDeleting(false);
   }
 
   async function setBrandColor(c: string) {
@@ -266,6 +285,27 @@ export default function BrandKit() {
                 </label>
               )}
             </div>
+            {isManager && !["cizaro", "dym"].includes(brand.slug ?? "") && (
+              delBrand === null ? (
+                <div className="kit-danger"><button type="button" className="btn btn-danger" onClick={() => setDelBrand(brands.find((b) => b.id !== brand.id)?.id ?? "")}><I name="trash" />{t("kit.deleteBrand")}</button></div>
+              ) : (
+                <div className="kit-delete group enter" role="alertdialog" aria-label={t("kit.deleteBrandTitle", { name: brand.name })}>
+                  <b>{t("kit.deleteBrandTitle", { name: brand.name })}</b>
+                  <p>{t("kit.deleteBrandBody")}</p>
+                  {(brand._count?.tasks ?? 0) > 0 && (
+                    <div className="kit-move">
+                      <span>{t("kit.deleteBrandTasks", { n: brand._count?.tasks ?? 0 })}</span>
+                      <Picker variant="pill" label={t("kit.moveTo")} value={delBrand} onChange={setDelBrand}
+                        options={brands.filter((b) => b.id !== brand.id).map((b) => ({ value: b.id, label: b.name, iconOnly: b.slug === "dym", icon: <BrandMark brand={b} size={20} /> }))} />
+                    </div>
+                  )}
+                  <div className="kit-delete-acts">
+                    <button type="button" className="btn btn-gray" onClick={() => setDelBrand(null)}>{t("sheet.cancel")}</button>
+                    <button type="button" className="btn btn-danger solid" disabled={deleting} onClick={deleteBrand}><I name="trash" />{t("kit.deleteBrandConfirm")}</button>
+                  </div>
+                </div>
+              )
+            )}
             {!isManager && <div className="note" style={{ marginBottom: 12 }}>{t("kit.viewOnly")}</div>}
             {assets === null ? <div className="empty"><p>{t("sheet.loading")}</p></div> : (
               <div className="kit" ref={flipRef}>{SECTIONS.map(section)}</div>
