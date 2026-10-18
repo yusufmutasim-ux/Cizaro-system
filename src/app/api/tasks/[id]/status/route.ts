@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { route, json, str } from "@/lib/api";
-import { taskSelect, addActivity } from "@/lib/tasks";
+import { taskSelect, addActivity, brandName } from "@/lib/tasks";
 import { notify, managerIds } from "@/lib/push";
 import { STATUS_KEYS, type Status } from "@/lib/vocab";
 import { normalizeType } from "@/lib/i18n";
@@ -27,15 +27,17 @@ export const POST = route<Ctx>(async (user, req, { params }, e) => {
   const updated = await prisma.task.update({ where: { id }, data, select: taskSelect });
 
   const url = `/?task=${id}`, tag = `task-${id}`;
+  const bn = await brandName(task.brandId);
+  const label = bn ? `${bn} · ${task.title}` : task.title;
   if (to === "changes") {
     await addActivity(id, user.id, "changes", { text: note, round: task.revisions + 1, toStatus: to });
-    await notify([task.assigneeId], { title: "push.changes.title", text: `${task.title}: ${note}`, url, tag }, user.id);
+    await notify([task.assigneeId], { title: "push.changes.title", text: `${label}: ${note}`, url, tag }, user.id);
   } else if (to === "done" && task.status === "review") {
     await addActivity(id, user.id, "approved", { text: note, toStatus: to });
-    await notify([task.assigneeId], { title: "push.approved.title", body: "push.approved.body", vars: { task: task.title }, url, tag }, user.id);
+    await notify([task.assigneeId], { title: "push.approved.title", body: "push.approved.body", vars: { task: label }, url, tag }, user.id);
   } else if (to === "review") {
     await addActivity(id, user.id, "submitted", { text: note, toStatus: to });
-    await notify(await managerIds(), { title: "push.review.title", body: "push.review.body", vars: { who: user.name, task: task.title }, url, tag }, user.id);
+    await notify(await managerIds(), { title: "push.review.title", body: "push.review.body", vars: { who: user.name, task: label }, url, tag }, user.id);
   } else await addActivity(id, user.id, "status", { toStatus: to });
   return out(updated);
 });

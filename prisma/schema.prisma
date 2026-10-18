@@ -23,6 +23,7 @@ model User {
   activity     Activity[]
   files        File[]
   pushSubs     PushSubscription[]
+  brandAssets  BrandAsset[]
 }
 
 model Task {
@@ -36,6 +37,8 @@ model Task {
   status      String     @default("new") // new | doing | review | changes | done
   revisions   Int        @default(0)
   coverFileId String?
+  brandId     String?    // null only on rows from before brands existed; startup backfills them
+  brand       Brand?     @relation(fields: [brandId], references: [id], onDelete: SetNull)
   assigneeId  String?
   assignee    User?      @relation("assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   createdById String
@@ -48,6 +51,7 @@ model Task {
 
   @@index([status])
   @@index([assigneeId])
+  @@index([brandId])
 }
 
 model Activity {
@@ -99,4 +103,33 @@ model PushSubscription {
 model Setting {
   key   String @id
   value String
+}
+
+model Brand {
+  id        String       @id @default(cuid())
+  slug      String       @unique
+  name      String
+  color     String       @default("#3b47b0")
+  sort      Int          @default(0)
+  createdAt DateTime     @default(now())
+  tasks     Task[]
+  assets    BrandAsset[]
+}
+
+// Brand kit: logos, fonts, colors, guidelines, templates
+model BrandAsset {
+  id           String   @id @default(cuid())
+  brandId      String
+  brand        Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  category     String   // logo | font | color | guideline | template | other
+  name         String
+  value        String?  // hex for colors
+  storageKey   String?
+  mime         String?
+  size         Int?
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([brandId, category])
 }

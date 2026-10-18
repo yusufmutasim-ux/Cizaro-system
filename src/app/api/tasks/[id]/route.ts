@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { route, json, str } from "@/lib/api";
-import { taskSelect } from "@/lib/tasks";
+import { taskSelect, brandIdOr, brandName } from "@/lib/tasks";
 import { removeUpload } from "@/lib/storage";
 import { notify } from "@/lib/push";
 import { PRIORITY_LABELS, normalizeType } from "@/lib/i18n";
@@ -35,6 +35,7 @@ export const PATCH = route<Ctx>(async (user, req, ctx, e) => {
   if ("size" in b) data.size = str(b.size, 40)?.trim() ?? "";
   if ("due" in b) data.due = typeof b.due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.due) ? b.due : null;
   if ("priority" in b && b.priority in PRIORITY_LABELS) data.priority = b.priority;
+  if ("brandId" in b) data.brandId = await brandIdOr(b.brandId);
   if ("assigneeId" in b) {
     const a = typeof b.assigneeId === "string" && b.assigneeId ? b.assigneeId : null;
     if (a && !(await prisma.user.findUnique({ where: { id: a } }))) return e("err.noDesigner");
@@ -42,7 +43,8 @@ export const PATCH = route<Ctx>(async (user, req, ctx, e) => {
   }
   const task = await prisma.task.update({ where: { id }, data, select: taskSelect });
   if ("assigneeId" in data && data.assigneeId && data.assigneeId !== before.assigneeId) {
-    await notify([task.assigneeId], { title: "push.assigned.title", text: task.title, url: `/?task=${id}`, tag: `task-${id}` }, user.id);
+    const bn = await brandName(task.brandId);
+    await notify([task.assigneeId], { title: "push.assigned.title", text: bn ? `${bn} · ${task.title}` : task.title, url: `/?task=${id}`, tag: `task-${id}` }, user.id);
   }
   return json({ ...task, type: normalizeType(task.type) });
 });

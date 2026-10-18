@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { I } from "./Icons";
 import { Avatar } from "./Avatar";
 import { useI18n } from "./I18n";
+import { Segmented } from "./Motion";
 import { api, type User } from "@/lib/client";
 import type { Locale } from "@/lib/i18n";
 
@@ -112,10 +113,8 @@ export default function Settings({ me, onClose }: { me: User; onClose: () => voi
 
             <div>
               <div className="group-h"><I name="globe" />{t("settings.language")}</div>
-              <div className="seg full glass" role="group" aria-label={t("settings.language")}>
-                <button type="button" aria-pressed={l === "ar"} onClick={() => setLocale("ar")}>العربية</button>
-                <button type="button" aria-pressed={l === "en"} onClick={() => setLocale("en")}>English</button>
-              </div>
+              <Segmented full label={t("settings.language")} value={l} onChange={setLocale}
+                options={[{ value: "ar", label: "العربية" }, { value: "en", label: "English" }]} />
             </div>
 
             <div>

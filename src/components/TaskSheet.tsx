@@ -5,23 +5,26 @@ import { I } from "./Icons";
 import { useI18n } from "./I18n";
 import { SIZES, STATUSES, PRIORITY_KEYS, ref, statusColor, type Status } from "@/lib/vocab";
 import { TYPE_KEYS } from "@/lib/i18n";
-import { api, kb, type Activity, type FileRow, type Task, type User } from "@/lib/client";
+import { api, kb, type Activity, type Brand, type FileRow, type Task, type User } from "@/lib/client";
+import { BrandMark } from "./BrandMark";
 
 type Props = {
   id: number | "draft";
   me: User;
   users: User[];
   userById: Record<string, User>;
+  brands: Brand[];
+  defaultBrandId?: string;
   onClose: () => void;
   onChanged: () => void;
   onCreated: (id: number) => void;
   say: (m: string) => void;
 };
 
-type Form = { title: string; brief: string; type: string; size: string; due: string; priority: string; assigneeId: string };
-const fromTask = (x: Task): Form => ({ title: x.title, brief: x.brief, type: x.type, size: x.size, due: x.due ?? "", priority: x.priority, assigneeId: x.assigneeId ?? "" });
+type Form = { title: string; brief: string; type: string; size: string; due: string; priority: string; assigneeId: string; brandId: string };
+const fromTask = (x: Task): Form => ({ brandId: x.brandId ?? "", title: x.title, brief: x.brief, type: x.type, size: x.size, due: x.due ?? "", priority: x.priority, assigneeId: x.assigneeId ?? "" });
 
-export default function TaskSheet({ id, me, users, userById, onClose, onChanged, onCreated, say }: Props) {
+export default function TaskSheet({ id, me, users, userById, brands, defaultBrandId, onClose, onChanged, onCreated, say }: Props) {
   const i = useI18n();
   const { t } = i;
   const isDraft = id === "draft";
@@ -31,7 +34,7 @@ export default function TaskSheet({ id, me, users, userById, onClose, onChanged,
   const [activity, setActivity] = useState<Activity[]>([]);
   const [files, setFiles] = useState<FileRow[]>([]);
   const [pending, setPending] = useState<FileRow[]>([]);
-  const [form, setForm] = useState<Form>({ title: "", brief: "", type: "social", size: "1080×1350", due: "", priority: "normal", assigneeId: "" });
+  const [form, setForm] = useState<Form>({ brandId: defaultBrandId ?? "", title: "", brief: "", type: "social", size: "1080×1350", due: "", priority: "normal", assigneeId: "" });
   const [note, setNote] = useState("");
   const [comment, setComment] = useState("");
   const [links, setLinks] = useState({ ref: "", delivery: "" });
@@ -312,6 +315,15 @@ export default function TaskSheet({ id, me, users, userById, onClose, onChanged,
             </div>
             <div className="side">
               <div className="group">
+                {brands.length > 0 && (
+                  <div className="field"><span className="fi" style={{ background: brands.find((b) => b.id === form.brandId)?.color ?? "var(--brand)" }}><I name="tag" /></span><label htmlFor="fBrand">{t("field.brand")}</label>
+                    <div className="fv">
+                      {brands.find((b) => b.id === form.brandId) && <BrandMark brand={brands.find((b) => b.id === form.brandId)!} size={22} />}
+                      <select id="fBrand" value={form.brandId} onChange={(e) => set("brandId", e.target.value, mode("now"))}>
+                        {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                    </div></div>
+                )}
                 <div className="field"><span className="fi" style={{ background: "var(--blue)" }}><I name="person" /></span><label htmlFor="fAs">{t("field.designer")}</label>
                   <div className="fv">
                     {form.assigneeId && <Avatar user={userById[form.assigneeId]} />}

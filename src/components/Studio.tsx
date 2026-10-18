@@ -6,8 +6,10 @@ import { Avatar } from "./Avatar";
 import { I, type IconName } from "./Icons";
 import { useI18n } from "./I18n";
 import TaskSheet from "./TaskSheet";
+import { Segmented, useFlip } from "./Motion";
+import { BrandMark } from "./BrandMark";
 import { STATUSES, ref, statusColor, type Status } from "@/lib/vocab";
-import { api, dayDiff, isOpen, today, type Task, type User } from "@/lib/client";
+import { api, dayDiff, isOpen, today, type Brand, type Task, type User } from "@/lib/client";
 
 type Tile = "today" | "late" | "review" | "mine";
 const PRANK: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -27,6 +29,8 @@ export default function Studio({ me }: { me: User }) {
   const params = useSearchParams();
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [brand, setBrand] = useState<string>("all");
   const [view, setView] = useState<"board" | "list">("board");
   const [tile, setTile] = useState<Tile | "">("");
   const [q, setQ] = useState("");
@@ -52,6 +56,10 @@ export default function Studio({ me }: { me: User }) {
   useEffect(() => {
     load();
     api<User[]>("/api/users").then(setUsers).catch(() => {});
+    api<Brand[]>("/api/brands").then((bs) => {
+      setBrands(bs);
+      try { const b = localStorage.getItem("cz-brand"); if (b && (b === "all" || bs.some((x) => x.id === b))) setBrand(b); else if (bs[0]) setBrand(bs[0].id); } catch { if (bs[0]) setBrand(bs[0].id); }
+    }).catch(() => {});
     try { const v = localStorage.getItem("cz-view"); if (v === "board" || v === "list") setView(v); else if (matchMedia("(max-width: 640px)").matches) setView("list"); } catch {}
     const iv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 10000);
     const onFocus = () => load();
@@ -75,7 +83,9 @@ export default function Studio({ me }: { me: User }) {
   }, [open]);
 
   const userById = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
-  const all = tasks ?? [];
+  const brandById = useMemo(() => Object.fromEntries(brands.map((b) => [b.id, b])), [brands]);
+  const all = (tasks ?? []).filter((x) => brand === "all" || x.brandId === brand);
+  const pickBrand = (b: string) => { setBrand(b); try { localStorage.setItem("cz-brand", b); } catch {} };
 
   const tileMatch = (x: Task, k: Tile) => {
     const td = today();
@@ -91,6 +101,10 @@ export default function Studio({ me }: { me: User }) {
     (!fAssignee || (fAssignee === "_none" ? !x.assigneeId : x.assigneeId === fAssignee)) &&
     (!fType || x.type === fType) &&
     (!ql || [x.title, x.brief, i.type(x.type), ref(x.id), userById[x.assigneeId ?? ""]?.name ?? ""].join(" ").toLowerCase().includes(ql)));
+
+  const flipKey = brand + "|" + view + "|" + visible.map((x) => `${x.id}:${x.status}:${x.due}`).join(",");
+  const boardRef = useFlip<HTMLDivElement>(flipKey);
+  const listRef = useFlip<HTMLDivElement>(flipKey);
 
   async function move(x: Task, to: Status) {
     if (x.status === to) return;
@@ -119,12 +133,13 @@ export default function Studio({ me }: { me: User }) {
     const di = i.due(x);
     const a = x.assigneeId ? userById[x.assigneeId] : null;
     return (
-      <article key={x.id} className={`card ${dragId === x.id ? "dragging" : ""}`} tabIndex={0} role="button" draggable
+      <article key={x.id} data-flip={x.id} className={`card ${dragId === x.id ? "dragging" : ""}`} tabIndex={0} role="button" draggable
         onDragStart={(e) => { setDragId(x.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(x.id)); }}
         onDragEnd={() => { setDragId(null); setOverCol(null); }}
         onClick={() => setOpen(x.id)} onKeyDown={(e) => { if (e.key === "Enter") setOpen(x.id); }}>
         {x.coverFileId && <div className="cover"><img src={`/api/files/${x.coverFileId}`} alt="" loading="lazy" /></div>}
         <div className="card-top">
+          {brand === "all" && brandById[x.brandId ?? ""] && <BrandMark brand={brandById[x.brandId!]} size={16} />}
           <span>{i.type(x.type)}</span>
           {x.priority === "urgent" && <span className="flag"><I name="flag" />{i.priority("urgent")}</span>}
           {x.priority === "high" && <span className="flag high"><I name="flag" />{i.priority("high")}</span>}
@@ -145,7 +160,7 @@ export default function Studio({ me }: { me: User }) {
 
   function board() {
     return (
-      <div className="board-scroll"><div className="board">
+      <div className="board-scroll"><div className="board" ref={boardRef}>
         {STATUSES.map((s) => {
           const items = visible.filter((x) => x.status === s.k).sort(sortTasks);
           return (
@@ -177,7 +192,7 @@ export default function Studio({ me }: { me: User }) {
       { k: "list.done", f: (x) => !isOpen(x) },
     ];
     return (
-      <div className="list">
+      <div className="list" ref={listRef}>
         {groups.map((g) => {
           const items = visible.filter(g.f).sort(sortTasks);
           if (!items.length) return null;
@@ -187,13 +202,14 @@ export default function Studio({ me }: { me: User }) {
               {items.map((x) => {
                 const di = i.due(x), c = statusColor(x.status), a = x.assigneeId ? userById[x.assigneeId] : null;
                 return (
-                  <button type="button" key={x.id} className="row" onClick={() => setOpen(x.id)}>
+                  <button type="button" key={x.id} data-flip={x.id} className="row" onClick={() => setOpen(x.id)}>
                     <span className={`ring ${x.status === "done" ? "done" : ""}`} style={{ ["--ring" as string]: c }}>{x.status === "done" && <I name="check" />}</span>
                     <span style={{ minWidth: 0 }}>
                       <span className="rt">{x.title}</span>
                       <span className="rm">
                         <span className="chip" style={{ color: c }}>{i.status(x.status)}</span>
                         {di && <span className={`chip ${di.cls}`}><I name="cal" />{di.label}</span>}
+                        {brand === "all" && brandById[x.brandId ?? ""] && <span className="chip"><BrandMark brand={brandById[x.brandId!]} size={14} />{brandById[x.brandId!].name}</span>}
                         <span className="chip">{i.type(x.type)}</span>
                         {x.revisions > 0 && <span className="chip rev">R{x.revisions}</span>}
                         {x.priority === "urgent" && <span className="flag"><I name="flag" />{i.priority("urgent")}</span>}
@@ -237,7 +253,14 @@ export default function Studio({ me }: { me: User }) {
           </div>
         </section>
 
-        <section className="tiles" aria-label={t("tasks.title")}>
+        {brands.length > 0 && (
+          <div className="brand-tabs">
+            <Segmented label={t("field.brand")} value={brand} onChange={pickBrand} className="brand-seg"
+              options={[...brands.map((b) => ({ value: b.id, label: <><BrandMark brand={b} size={22} />{b.name}</> })), { value: "all", label: t("brand.all") }]} />
+          </div>
+        )}
+
+        <section className="tiles" key={`tiles-${brand}`} aria-label={t("tasks.title")}>
           {tiles.map((x) => (
             <button key={x.k} type="button" className="tile" aria-pressed={tile === x.k} style={{ ["--tile-c" as string]: x.c }} onClick={() => setTile(tile === x.k ? "" : x.k)}>
               <span className="dot" style={{ background: x.c }}><I name={x.ic} /></span>
@@ -248,11 +271,8 @@ export default function Studio({ me }: { me: User }) {
         </section>
 
         <div className="toolbar">
-          <div className="seg" role="group" aria-label={t("view.board")}>
-            {(["board", "list"] as const).map((v) => (
-              <button key={v} type="button" aria-pressed={view === v} onClick={() => { setView(v); try { localStorage.setItem("cz-view", v); } catch {} }}>{t(`view.${v}`)}</button>
-            ))}
-          </div>
+          <Segmented label={t("view.board")} value={view} onChange={(v) => { setView(v); try { localStorage.setItem("cz-view", v); } catch {} }}
+            options={[{ value: "board", label: t("view.board") }, { value: "list", label: t("view.list") }]} />
           <select className="select" id="fAssignee" aria-label={t("field.designer")} value={fAssignee} onChange={(e) => setFAssignee(e.target.value)}>
             <option value="">{t("filter.allDesigners")}</option>
             {assigned.map((id) => <option key={id} value={id}>{userById[id]?.name ?? "—"}</option>)}
@@ -265,11 +285,11 @@ export default function Studio({ me }: { me: User }) {
           {filtered && <div className="filter-note"><span>{t("filter.count", { shown: visible.length, total: all.length })}</span><button type="button" onClick={clear}>{t("filter.clear")}</button></div>}
         </div>
 
-        <section>{content}</section>
+        <section key={`content-${brand}-${view}`} className="enter">{content}</section>
       </main>
 
       {open !== null && (
-        <TaskSheet key={String(open)} id={open} me={me} users={users} userById={userById}
+        <TaskSheet key={String(open)} id={open} me={me} users={users} userById={userById} brands={brands} defaultBrandId={brand !== "all" ? brand : brands[0]?.id}
           onClose={() => setOpen(null)} onChanged={load} onCreated={(id) => setOpen(id)} say={say} />
       )}
       <div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div>

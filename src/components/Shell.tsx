@@ -10,7 +10,7 @@ import type { User } from "@/lib/client";
 
 type Props = {
   me: User;
-  active: "tasks" | "team";
+  active: "tasks" | "team" | "brands";
   search?: React.ReactNode;
   onNew?: () => void;
   children: React.ReactNode;
@@ -43,6 +43,7 @@ export function Shell({ me, active, search, onNew, children }: Props) {
           <Link href="/" className="brand"><img src="/icon.svg" alt="" /><span>Cizaro <small>Studio</small></span></Link>
           <nav className="navlinks">
             <Link href="/" aria-current={cur("tasks")}>{t("nav.tasks")}</Link>
+            <Link href="/brands" aria-current={cur("brands")}>{t("nav.brands")}</Link>
             {me.role === "MANAGER" && <Link href="/team" aria-current={cur("team")}>{t("nav.team")}</Link>}
           </nav>
           {search ?? <span style={{ marginInlineStart: "auto" }} />}
@@ -57,6 +58,7 @@ export function Shell({ me, active, search, onNew, children }: Props) {
       <div className="tabbar-wrap">
         <nav className="tabbar glass">
           <Link href="/" aria-current={cur("tasks")}><I name="grid" />{t("nav.tasks")}</Link>
+          <Link href="/brands" aria-current={cur("brands")}><I name="tag" />{t("nav.brands")}</Link>
           {me.role === "MANAGER" && <Link href="/team" aria-current={cur("team")}><I name="people" />{t("nav.team")}</Link>}
           <button type="button" onClick={() => setSettings(true)}><I name="gear" />{t("nav.settings")}</button>
         </nav>

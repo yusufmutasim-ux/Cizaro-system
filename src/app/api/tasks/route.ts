@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { route, json, str } from "@/lib/api";
-import { taskSelect, addActivity } from "@/lib/tasks";
+import { taskSelect, addActivity, brandIdOr } from "@/lib/tasks";
 import { notify } from "@/lib/push";
 import { PRIORITY_LABELS, normalizeType } from "@/lib/i18n";
 
@@ -25,11 +25,13 @@ export const POST = route(async (user, req, _c, e) => {
       due,
       priority: b.priority in PRIORITY_LABELS ? b.priority : "normal",
       assigneeId,
+      brandId: await brandIdOr(b.brandId),
       createdById: user.id,
     },
     select: taskSelect,
   });
   await addActivity(task.id, user.id, "created");
-  await notify([assigneeId], { title: "push.assigned.title", text: title, url: `/?task=${task.id}`, tag: `task-${task.id}` }, user.id);
+  const brand = await prisma.brand.findUnique({ where: { id: task.brandId ?? "" }, select: { name: true } });
+  await notify([assigneeId], { title: "push.assigned.title", text: brand ? `${brand.name} · ${title}` : title, url: `/?task=${task.id}`, tag: `task-${task.id}` }, user.id);
   return json(task, 201);
 });
