@@ -31,13 +31,13 @@ export const POST = route<Ctx>(async (user, req, { params }, e) => {
   const label = bn ? `${bn} · ${task.title}` : task.title;
   if (to === "changes") {
     await addActivity(id, user.id, "changes", { text: note, round: task.revisions + 1, toStatus: to });
-    await notify([task.assigneeId], { title: "push.changes.title", text: `${label}: ${note}`, url, tag }, user.id);
+    await notify([task.assigneeId], { kind: "changes", title: "push.changes.title", text: `${label}: ${note}`, url, tag }, user.id);
   } else if (to === "done" && task.status === "review") {
     await addActivity(id, user.id, "approved", { text: note, toStatus: to });
-    await notify([task.assigneeId], { title: "push.approved.title", body: "push.approved.body", vars: { task: label }, url, tag }, user.id);
+    await notify([task.assigneeId], { kind: "approved", title: "push.approved.title", body: "push.approved.body", vars: { task: label }, url, tag }, user.id);
   } else if (to === "review") {
     await addActivity(id, user.id, "submitted", { text: note, toStatus: to });
-    await notify(await managerIds(), { title: "push.review.title", body: "push.review.body", vars: { who: user.name, task: label }, url, tag }, user.id);
+    await notify(await managerIds(), { kind: "review", title: "push.review.title", body: "push.review.body", vars: { who: user.name, task: label }, url, tag }, user.id);
   } else await addActivity(id, user.id, "status", { toStatus: to });
   return out(updated);
 });

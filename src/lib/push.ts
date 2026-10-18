@@ -22,7 +22,11 @@ async function setup(): Promise<string> {
 
 export const publicKey = () => (ready ??= setup());
 
-type Message = { title: Key; body?: Key; text?: string; vars?: Record<string, string>; url?: string; tag?: string };
+export const NOTIFY_KINDS = ["assigned", "review", "changes", "approved", "comment", "note"] as const;
+export type NotifyKind = (typeof NOTIFY_KINDS)[number];
+type Message = { kind: NotifyKind | "test"; title: Key; body?: Key; text?: string; vars?: Record<string, string>; url?: string; tag?: string };
+
+const muted = (prefs: string, kind: NotifyKind | "test") => { try { return JSON.parse(prefs)[kind] === false; } catch { return false; } };
 
 /** Sends a localized notification to each user's devices. Never throws; dead subscriptions are removed. */
 export async function notify(userIds: (string | null | undefined)[], msg: Message, exceptId?: string) {
@@ -30,8 +34,8 @@ export async function notify(userIds: (string | null | undefined)[], msg: Messag
   if (!ids.length) return;
   try {
     await publicKey();
-    const users = await prisma.user.findMany({ where: { id: { in: ids }, active: true }, select: { id: true, locale: true, pushSubs: true } });
-    await Promise.all(users.flatMap((u) => {
+    const users = await prisma.user.findMany({ where: { id: { in: ids }, active: true }, select: { id: true, locale: true, notifyPrefs: true, pushSubs: true } });
+    await Promise.all(users.filter((u) => !muted(u.notifyPrefs, msg.kind)).flatMap((u) => {
       const l: Locale = isLocale(u.locale) ? u.locale : "ar";
       const payload = JSON.stringify({
         title: t(l, msg.title, msg.vars),

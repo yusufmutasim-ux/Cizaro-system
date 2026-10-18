@@ -44,7 +44,7 @@ export const PATCH = route<Ctx>(async (user, req, ctx, e) => {
   const task = await prisma.task.update({ where: { id }, data, select: taskSelect });
   if ("assigneeId" in data && data.assigneeId && data.assigneeId !== before.assigneeId) {
     const bn = await brandName(task.brandId);
-    await notify([task.assigneeId], { title: "push.assigned.title", text: bn ? `${bn} · ${task.title}` : task.title, url: `/?task=${id}`, tag: `task-${id}` }, user.id);
+    await notify([task.assigneeId], { kind: "assigned", title: "push.assigned.title", text: bn ? `${bn} · ${task.title}` : task.title, url: `/?task=${id}`, tag: `task-${id}` }, user.id);
   }
   return json({ ...task, type: normalizeType(task.type) });
 });

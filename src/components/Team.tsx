@@ -1,22 +1,27 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Shell } from "./Shell";
+import { useApp } from "./App";
+import { useRouter } from "next/navigation";
+import { useData } from "@/lib/cache";
 import { Avatar } from "./Avatar";
 import { I } from "./Icons";
 import { useI18n } from "./I18n";
 import { api, type User } from "@/lib/client";
 
-export default function Team({ me }: { me: User }) {
+export default function Team() {
+  const { me } = useApp();
+  const router = useRouter();
+  useEffect(() => { if (me.role !== "MANAGER") router.replace("/"); }, [me.role, router]);
   const { t } = useI18n();
-  const [users, setUsers] = useState<User[]>([]);
+  const usersQ = useData<User[]>("/api/users");
+  const users = usersQ.data ?? [];
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "DESIGNER" });
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [resetFor, setResetFor] = useState<string | null>(null);
   const [newPass, setNewPass] = useState("");
 
-  const load = () => api<User[]>("/api/users").then(setUsers).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  const load = () => usersQ.reload().catch((e) => setErr(e.message));
 
   async function add(e: React.FormEvent) {
     e.preventDefault(); setErr(""); setMsg("");
@@ -35,7 +40,7 @@ export default function Team({ me }: { me: User }) {
   }
 
   return (
-    <Shell me={me} active="team">
+    <>
       <main className="wrap">
         <section className="head">
           <div>
@@ -90,6 +95,6 @@ export default function Team({ me }: { me: User }) {
           </form>
         </div>
       </main>
-    </Shell>
+    </>
   );
 }

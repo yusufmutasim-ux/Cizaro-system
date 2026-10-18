@@ -1,7 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Shell } from "./Shell";
+import { useApp } from "./App";
+import { useData } from "@/lib/cache";
 import { Avatar } from "./Avatar";
 import { I, type IconName } from "./Icons";
 import { useI18n } from "./I18n";
@@ -22,18 +23,19 @@ function sortTasks(a: Task, b: Task) {
   return b.createdAt.localeCompare(a.createdAt);
 }
 
-export default function Studio({ me, storageWarning = false }: { me: User; storageWarning?: boolean }) {
+export default function Studio() {
+  const { me, query: q, newTick, storageWarning } = useApp();
   const i = useI18n();
   const { t } = i;
   const router = useRouter();
   const params = useSearchParams();
-  const [tasks, setTasks] = useState<Task[] | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [brand, setBrand] = useState<string>("all");
+  const tasksQ = useData<Task[]>("/api/tasks", 10000);
+  const tasks = tasksQ.data ?? null;
+  const users = useData<User[]>("/api/users").data ?? [];
+  const brands = useData<Brand[]>("/api/brands").data ?? [];
+  const [brand, setBrand] = useState<string>(() => { try { return localStorage.getItem("cz-brand") || "all"; } catch { return "all"; } });
   const [view, setView] = useState<"board" | "list">("board");
   const [tile, setTile] = useState<Tile | "">("");
-  const [q, setQ] = useState("");
   const [fAssignee, setFAssignee] = useState("");
   const [fType, setFType] = useState("");
   const [open, setOpen] = useState<number | "draft" | null>(null);
@@ -49,23 +51,20 @@ export default function Studio({ me, storageWarning = false }: { me: User; stora
     toastT.current = setTimeout(() => setToast(""), 2600);
   }, []);
 
-  const load = useCallback(async () => {
-    try { setTasks(await api<Task[]>("/api/tasks")); } catch (e) { say((e as Error).message); }
-  }, [say]);
+  const load = useCallback(() => { tasksQ.reload().catch((e) => say((e as Error).message)); }, [tasksQ, say]);
+
+  // Fall back to the first brand when the remembered one no longer exists
+  useEffect(() => {
+    if (brands.length && brand !== "all" && !brands.some((x) => x.id === brand)) setBrand(brands[0].id);
+  }, [brands, brand]);
 
   useEffect(() => {
-    load();
-    api<User[]>("/api/users").then(setUsers).catch(() => {});
-    api<Brand[]>("/api/brands").then((bs) => {
-      setBrands(bs);
-      try { const b = localStorage.getItem("cz-brand"); if (b && (b === "all" || bs.some((x) => x.id === b))) setBrand(b); else if (bs[0]) setBrand(bs[0].id); } catch { if (bs[0]) setBrand(bs[0].id); }
-    }).catch(() => {});
     try { const v = localStorage.getItem("cz-view"); if (v === "board" || v === "list") setView(v); else if (matchMedia("(max-width: 640px)").matches) setView("list"); } catch {}
-    const iv = setInterval(() => { if (document.visibilityState === "visible") load(); }, 10000);
-    const onFocus = () => load();
-    window.addEventListener("focus", onFocus);
-    return () => { clearInterval(iv); window.removeEventListener("focus", onFocus); };
-  }, [load]);
+  }, []);
+
+  // The floating + button lives in the app frame
+  const firstTick = useRef(newTick);
+  useEffect(() => { if (newTick !== firstTick.current) setOpen("draft"); }, [newTick]);
 
   // Opening a notification lands on /?task=<id>
   useEffect(() => {
@@ -112,7 +111,7 @@ export default function Studio({ me, storageWarning = false }: { me: User; stora
     if (x.status === to) return;
     if (to === "changes") { setOpen(x.id); say(t("toast.writeChanges")); return; }
     if (to === "done" && !isManager) { say(t("toast.approveManager")); return; }
-    setTasks((ts) => ts && ts.map((y) => (y.id === x.id ? { ...y, status: to } : y)));
+    tasksQ.mutate((ts) => (ts ?? []).map((y) => (y.id === x.id ? { ...y, status: to } : y)));
     try {
       await api(`/api/tasks/${x.id}/status`, { method: "POST", json: { status: to } });
       say(t("toast.moved", { s: i.status(to) }));
@@ -129,7 +128,8 @@ export default function Studio({ me, storageWarning = false }: { me: User; stora
   const usedTypes = [...new Set(all.map((x) => x.type))];
   const assigned = [...new Set(all.map((x) => x.assigneeId).filter(Boolean))] as string[];
   const filtered = !!(tile || fAssignee || fType || q);
-  const clear = () => { setTile(""); setFAssignee(""); setFType(""); setQ(""); };
+  const { setQuery } = useApp();
+  const clear = () => { setTile(""); setFAssignee(""); setFType(""); setQuery(""); };
 
   const card = (x: Task) => {
     const di = i.due(x);
@@ -242,8 +242,7 @@ export default function Studio({ me, storageWarning = false }: { me: User; stora
   else content = view === "board" ? board() : list();
 
   return (
-    <Shell me={me} active="tasks" onNew={() => setOpen("draft")}
-      search={<label className="search" htmlFor="q"><I name="search" /><input id="q" type="search" placeholder={t("search.placeholder")} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} /></label>}>
+    <>
       <main className="wrap">
         <section className="head">
           <div>
@@ -300,6 +299,6 @@ export default function Studio({ me, storageWarning = false }: { me: User; stora
           onClose={() => setOpen(null)} onChanged={load} onCreated={(id) => setOpen(id)} say={say} />
       )}
       <div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div>
-    </Shell>
+    </>
   );
 }

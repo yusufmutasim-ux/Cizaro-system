@@ -11,7 +11,7 @@ const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
  * Phone tab bar with a liquid glass thumb that slides to the selected tab and squishes as it travels.
  * The last tab is remembered across page loads, so navigating animates from the previous tab.
  */
-export function TabBar({ items, selected }: { items: Item[]; selected: string }) {
+export function TabBar({ items, selected, badge = {} }: { items: Item[]; selected: string; badge?: Record<string, number> }) {
   const nav = useRef<HTMLElement>(null);
   const thumb = useRef<HTMLSpanElement>(null);
   const at = useRef<string | null>(null);
@@ -72,9 +72,9 @@ export function TabBar({ items, selected }: { items: Item[]; selected: string })
       <span className="tab-thumb" ref={thumb} aria-hidden="true" />
       {items.map((x) => {
         const cur = x.k === selected ? "page" : undefined;
-        const content = <><I name={x.icon} />{x.label}</>;
+        const content = <><span className="tab-ico"><I name={x.icon} />{badge[x.k] ? <span className="dot-badge">{badge[x.k]}</span> : null}</span>{x.label}</>;
         return x.href
-          ? <Link key={x.k} href={x.href} data-k={x.k} aria-current={cur} onClick={() => place(x.k, true)}>{content}</Link>
+          ? <Link key={x.k} href={x.href} prefetch data-k={x.k} aria-current={cur} onClick={() => place(x.k, true)}>{content}</Link>
           : <button key={x.k} type="button" data-k={x.k} aria-current={cur} onClick={() => { place(x.k, true); x.onClick?.(); }}>{content}</button>;
       })}
     </nav>

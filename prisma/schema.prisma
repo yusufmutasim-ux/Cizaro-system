@@ -17,6 +17,9 @@ model User {
   role         String     @default("DESIGNER") // MANAGER | DESIGNER
   active       Boolean    @default(true)
   locale       String     @default("ar") // ar | en, also used for notifications
+  avatarKey    String?    // profile photo, relative to STORAGE_DIR
+  avatarAt     DateTime?  // bumps the photo URL when it changes
+  notifyPrefs  String     @default("{}") // JSON map of notification kind -> false when muted
   createdAt    DateTime   @default(now())
   assigned     Task[]     @relation("assignee")
   created      Task[]     @relation("creator")
@@ -24,6 +27,7 @@ model User {
   files        File[]
   pushSubs     PushSubscription[]
   brandAssets  BrandAsset[]
+  notesSent    Note[]
 }
 
 model Task {
@@ -132,4 +136,16 @@ model BrandAsset {
   createdAt    DateTime @default(now())
 
   @@index([brandId, category])
+}
+
+// A note from a team member to the managers
+model Note {
+  id        String    @id @default(cuid())
+  fromId    String
+  from      User      @relation(fields: [fromId], references: [id], onDelete: Cascade)
+  text      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
 }
