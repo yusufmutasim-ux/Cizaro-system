@@ -78,7 +78,9 @@
 }
 
 * { box-sizing: border-box; }
+html { background: var(--bg); }
 html, body { min-height: 100%; margin: 0; }
+body { min-height: 100dvh; }
 img { max-width: 100%; }
 [hidden] { display: none !important; }
 body {
@@ -93,7 +95,7 @@ a { color: inherit; }
 svg.i { width: 1em; height: 1em; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Ambient light the glass refracts */
-.ambient { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.ambient { position: fixed; z-index: -1; overflow: hidden; pointer-events: none; left: 0; right: 0; top: calc(-1 * env(safe-area-inset-top, 0px)); bottom: calc(-1 * env(safe-area-inset-bottom, 0px)); background: var(--bg); }
 .ambient i { position: absolute; border-radius: 50%; filter: blur(70px); animation: drift 26s ease-in-out infinite alternate; }
 .ambient i:nth-child(1) { width: 52vmax; height: 52vmax; background: var(--blob-1); top: -18vmax; inset-inline-start: -12vmax; }
 .ambient i:nth-child(2) { width: 40vmax; height: 40vmax; background: var(--blob-2); top: 30vh; inset-inline-end: -14vmax; animation-delay: -8s; }
@@ -110,8 +112,7 @@ svg.i { width: 1em; height: 1em; flex: none; stroke: currentColor; fill: none; s
 }
 .glass::before, .tile::before, .topbar::before, .tabbar::before, .sheet::before, .btn-glass::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 42%);
-  mix-blend-mode: soft-light;
+  background: linear-gradient(180deg, var(--sheen), transparent 45%);
 }
 
 .wrap {
@@ -663,7 +664,7 @@ main.wrap > .toolbar { animation-delay: .12s; }
   box-shadow: inset 0 1px 0 var(--rim), inset 0 0 0 0.5px var(--rim-2), 0 4px 14px rgba(0, 0, 0, .14);
   transition: translate .6s var(--bounce), width .45s var(--spring), opacity .2s;
 }
-.tab-thumb::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, rgba(255, 255, 255, .35), transparent 55%); mix-blend-mode: soft-light; }
+.tab-thumb::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, var(--sheen), transparent 55%); }
 :root[data-brand="dym"] .tab-thumb { box-shadow: inset 0 1px 0 var(--rim), 0 0 0 1.5px color-mix(in srgb, var(--pink) 55%, transparent), 0 4px 14px rgba(244, 95, 203, .25); }
 @keyframes tabPop { 0% { transform: scale(.7) translateY(2px); } 55% { transform: scale(1.18) translateY(-2px); } 100% { transform: none; } }
 .tabbar [aria-current="page"] .i { animation: tabPop .55s var(--bounce); }
@@ -729,3 +730,23 @@ img.av.photo, img.me.photo { object-fit: cover; background: var(--fill); }
 .switch[disabled] { opacity: .5; }
 .settings-page .set-row { flex-wrap: wrap; row-gap: 10px; }
 .settings-page .set-row .grow { min-width: 180px; }
+
+/* Bars: denser glass so they stay legible over bright ambient light, with a crisp edge */
+:root { --bar: rgba(255, 255, 255, 0.74); --bar-edge: rgba(255, 255, 255, 0.85); --sheen: rgba(255, 255, 255, 0.35); }
+@media (prefers-color-scheme: dark) { :root { --bar: rgba(16, 18, 44, 0.78); --bar-edge: rgba(255, 255, 255, 0.14); --sheen: rgba(255, 255, 255, 0.08); } }
+:root[data-brand="dym"] { --bar: rgba(253, 250, 255, 0.78); }
+@media (prefers-color-scheme: dark) { :root[data-brand="dym"] { --bar: rgba(24, 14, 40, 0.8); } }
+.topbar, .tabbar {
+  background: var(--bar);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+  box-shadow: inset 0 1px 0 var(--bar-edge), inset 0 0 0 0.5px var(--bar-edge), 0 10px 30px -12px rgba(0, 0, 0, .35);
+  transform: translateZ(0);
+}
+.brand img { box-shadow: 0 0 0 0.5px var(--bar-edge), 0 2px 8px rgba(30, 38, 104, .35); }
+
+/* Team rows on phones: name and email get the full width, actions sit on their own line */
+@media (max-width: 640px) {
+  .member { grid-template-columns: 40px minmax(0, 1fr); row-gap: 10px; }
+  .member .acts { grid-column: 1 / -1; justify-content: flex-start; padding-inline-start: 52px; }
+}
