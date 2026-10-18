@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { route, json } from "@/lib/api";
 
-const pub = { id: true, name: true, email: true, role: true, active: true, createdAt: true, avatarAt: true } as const;
+const pub = { id: true, name: true, email: true, role: true, active: true, createdAt: true, avatarAt: true, leadId: true } as const;
 
 export const GET = route(async () => json(await prisma.user.findMany({ select: pub, orderBy: { createdAt: "asc" } })));
 

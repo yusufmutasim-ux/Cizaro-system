@@ -1,7 +1,7 @@
 "use client";
 import type { Locale } from "./i18n";
 
-export type User = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; active?: boolean; locale?: Locale; avatarAt?: string | null };
+export type User = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; active?: boolean; locale?: Locale; avatarAt?: string | null; leadId?: string | null };
 export type Task = {
   id: number; title: string; brief: string; type: string; size: string; due: string | null; priority: string; status: string;
   revisions: number; coverFileId: string | null; brandId: string | null; assigneeId: string | null; createdById: string; createdAt: string; updatedAt: string;
@@ -42,3 +42,15 @@ export function colorFor(id: string) {
   return PALETTE[h % PALETTE.length];
 }
 export const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
+
+/** Everyone below `id` in the reporting tree, from the users list. Mirrors the server rule. */
+export function subordinatesOf(id: string, users: User[]): Set<string> {
+  const out = new Set<string>();
+  let frontier = [id];
+  while (frontier.length) {
+    const next = users.filter((u) => u.leadId && frontier.includes(u.leadId) && !out.has(u.id)).map((u) => u.id);
+    next.forEach((x) => out.add(x));
+    frontier = next;
+  }
+  return out;
+}

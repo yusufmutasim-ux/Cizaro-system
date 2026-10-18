@@ -57,6 +57,12 @@ export default function Team() {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 650 }}>{u.name}{u.id === me.id ? ` ${t("field.you")}` : ""}</div>
                   <div className="em">{u.email}</div>
+                  {(u.leadId || users.some((x) => x.leadId === u.id)) && (
+                    <div className="reports-line">
+                      {u.leadId && <span>{t("team.reportsTo")} <b>{users.find((x) => x.id === u.leadId)?.name ?? "—"}</b></span>}
+                      {users.some((x) => x.leadId === u.id) && <span>{t("team.leads", { n: users.filter((x) => x.leadId === u.id).length })}</span>}
+                    </div>
+                  )}
                   {resetFor === u.id && (
                     <div className="link-row" style={{ padding: "8px 0 0" }}>
                       <input id={`np-${u.id}`} type="text" placeholder={t("team.newPass")} value={newPass} onChange={(e) => setNewPass(e.target.value)} />
@@ -65,6 +71,10 @@ export default function Team() {
                   )}
                 </div>
                 <div className="acts">
+                  <span className="acts-label">{t("team.reportsTo")}</span>
+                  <Picker variant="pill" label={t("team.reportsTo")} value={u.leadId ?? ""} onChange={(v) => update(u.id, { leadId: v || null })}
+                    options={[{ value: "", label: t("team.noLead"), icon: <Avatar user={null} /> },
+                      ...users.filter((x) => x.id !== u.id && x.active).map((x) => ({ value: x.id, label: x.name, icon: <Avatar user={x} /> }))]} />
                   <Picker variant="pill" label={t("team.role")} value={u.role} disabled={u.id === me.id} onChange={(v) => update(u.id, { role: v })}
                     options={[{ value: "DESIGNER", label: t("team.designer") }, { value: "MANAGER", label: t("team.manager") }]} />
                   <button type="button" className="btn btn-gray" onClick={() => { setResetFor(resetFor === u.id ? null : u.id); setNewPass(""); }}>{t("team.password")}</button>

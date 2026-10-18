@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { route, json, str } from "@/lib/api";
-import { taskSelect, brandIdOr, brandName } from "@/lib/tasks";
+import { taskSelect, brandIdOr, brandName, addActivity } from "@/lib/tasks";
+import { canAssign } from "@/lib/team";
 import { removeUpload } from "@/lib/storage";
 import { notify } from "@/lib/push";
 import { PRIORITY_LABELS, normalizeType } from "@/lib/i18n";
@@ -39,12 +40,16 @@ export const PATCH = route<Ctx>(async (user, req, ctx, e) => {
   if ("assigneeId" in b) {
     const a = typeof b.assigneeId === "string" && b.assigneeId ? b.assigneeId : null;
     if (a && !(await prisma.user.findUnique({ where: { id: a } }))) return e("err.noDesigner");
+    if (a !== before.assigneeId && !(await canAssign(user, before, a))) return e("err.cantAssign", 403);
     data.assigneeId = a;
   }
   const task = await prisma.task.update({ where: { id }, data, select: taskSelect });
-  if ("assigneeId" in data && data.assigneeId && data.assigneeId !== before.assigneeId) {
+  if ("assigneeId" in data && data.assigneeId !== before.assigneeId) {
+    await addActivity(id, user.id, "assign", { text: (data.assigneeId as string | null) ?? "" });
+  }
+  if ("assigneeId" in data && data.assigneeId && data.assigneeId !== before.assigneeId && data.assigneeId !== user.id) {
     const bn = await brandName(task.brandId);
-    await notify([task.assigneeId], { kind: "assigned", title: "push.assigned.title", text: bn ? `${bn} · ${task.title}` : task.title, url: `/?task=${id}`, tag: `task-${id}` }, user.id);
+    await notify([task.assigneeId], { kind: "assigned", title: "push.assigned.title", vars: { who: user.name }, text: bn ? `${bn} · ${task.title}` : task.title, url: `/?task=${id}`, tag: `task-${id}` }, user.id);
   }
   return json({ ...task, type: normalizeType(task.type) });
 });
