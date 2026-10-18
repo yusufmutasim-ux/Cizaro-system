@@ -32,14 +32,14 @@ export async function setSessionCookie(userId: string) {
   });
 }
 
-export type SessionUser = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; locale: Locale; avatarAt: string | null };
+export type SessionUser = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; locale: Locale; avatarAt: string | null; branchId: string | null };
 
 export async function currentUser(): Promise<SessionUser | null> {
   const id = await verifySession((await cookies()).get(COOKIE)?.value);
   if (!id) return null;
-  const u = await prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, role: true, active: true, locale: true, avatarAt: true } });
+  const u = await prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, role: true, active: true, locale: true, avatarAt: true, branchId: true } });
   if (!u || !u.active) return null;
-  return { id: u.id, name: u.name, email: u.email, role: u.role === "MANAGER" ? "MANAGER" : "DESIGNER", locale: isLocale(u.locale) ? u.locale : "ar", avatarAt: u.avatarAt?.toISOString() ?? null };
+  return { id: u.id, name: u.name, email: u.email, role: u.role === "MANAGER" ? "MANAGER" : "DESIGNER", locale: isLocale(u.locale) ? u.locale : "ar", avatarAt: u.avatarAt?.toISOString() ?? null, branchId: u.branchId };
 }
 
 /** True on Railway when no volume is attached, i.e. the next deploy will wipe all data. */

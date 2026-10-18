@@ -14,6 +14,17 @@ for (const b of BRANDS) await prisma.brand.upsert({ where: { slug: b.slug }, upd
 // DYM briefly shipped with a placeholder black; move it to the brand purple unless someone picked a color since
 await prisma.brand.updateMany({ where: { slug: "dym", color: "#111111" }, data: { color: "#7B4DE8" } });
 
+// Cizaro works from two offices; tasks and people are split between them
+const cz = await prisma.brand.findUnique({ where: { slug: "cizaro" } });
+const BRANCHES = [
+  { slug: "eg", name: "مصر", nameEn: "Egypt", code: "EG", sort: 0 },
+  { slug: "sa", name: "السعودية", nameEn: "Saudi Arabia", code: "SA", sort: 1 },
+];
+for (const b of BRANCHES) await prisma.branch.upsert({ where: { brandId_slug: { brandId: cz.id, slug: b.slug } }, update: {}, create: { ...b, brandId: cz.id } });
+const egypt = await prisma.branch.findUnique({ where: { brandId_slug: { brandId: cz.id, slug: "eg" } } });
+const placed = await prisma.task.updateMany({ where: { brandId: cz.id, branchId: null }, data: { branchId: egypt.id } });
+if (placed.count) console.log(`Placed ${placed.count} Cizaro tasks in the Egypt branch`);
+
 // Tasks created before brands existed belong to Cizaro
 const cizaro = await prisma.brand.findUnique({ where: { slug: "cizaro" } });
 const moved = await prisma.task.updateMany({ where: { brandId: null }, data: { brandId: cizaro.id } });

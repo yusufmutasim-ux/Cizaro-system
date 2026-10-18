@@ -2,7 +2,7 @@ import { prisma } from "./db";
 
 export const taskSelect = {
   id: true, title: true, brief: true, type: true, size: true, due: true, priority: true, status: true,
-  revisions: true, coverFileId: true, brandId: true, assigneeId: true, createdById: true, createdAt: true, updatedAt: true, doneAt: true,
+  revisions: true, coverFileId: true, brandId: true, branchId: true, assigneeId: true, createdById: true, createdAt: true, updatedAt: true, doneAt: true,
   _count: { select: { files: true, activity: { where: { kind: "comment" } } } },
 } as const;
 

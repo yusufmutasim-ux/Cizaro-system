@@ -20,6 +20,8 @@ model User {
   avatarKey    String?    // profile photo, relative to STORAGE_DIR
   avatarAt     DateTime?  // bumps the photo URL when it changes
   notifyPrefs  String     @default("{}") // JSON map of notification kind -> false when muted
+  branchId     String?    // the branch this person works in; non-managers only see that branch's tasks
+  branch       Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
   leadId       String?    // who this person reports to; they can hand their tasks down to their reports
   lead         User?      @relation("reports", fields: [leadId], references: [id], onDelete: SetNull)
   reports      User[]     @relation("reports")
@@ -44,6 +46,8 @@ model Task {
   status      String     @default("new") // new | doing | review | changes | done
   revisions   Int        @default(0)
   coverFileId String?
+  branchId    String?    // set when the brand has branches (Cizaro: Egypt / Saudi Arabia)
+  branch      Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
   brandId     String?    // null only on rows from before brands existed; startup backfills them
   brand       Brand?     @relation(fields: [brandId], references: [id], onDelete: SetNull)
   assigneeId  String?
@@ -59,6 +63,7 @@ model Task {
   @@index([status])
   @@index([assigneeId])
   @@index([brandId])
+  @@index([branchId])
 }
 
 model Activity {
@@ -121,6 +126,23 @@ model Brand {
   createdAt DateTime     @default(now())
   tasks     Task[]
   assets    BrandAsset[]
+  branches  Branch[]
+}
+
+// A brand's office, e.g. Cizaro Egypt and Cizaro Saudi Arabia. Tasks and people belong to one.
+model Branch {
+  id      String @id @default(cuid())
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  slug    String
+  name    String // Arabic
+  nameEn  String
+  code    String // short badge, e.g. EG / SA
+  sort    Int    @default(0)
+  tasks   Task[]
+  users   User[]
+
+  @@unique([brandId, slug])
 }
 
 // Brand kit: logos, fonts, colors, guidelines, templates

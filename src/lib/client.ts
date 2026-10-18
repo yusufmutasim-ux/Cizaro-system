@@ -1,13 +1,14 @@
 "use client";
 import type { Locale } from "./i18n";
 
-export type User = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; active?: boolean; locale?: Locale; avatarAt?: string | null; leadId?: string | null };
+export type User = { id: string; name: string; email: string; role: "MANAGER" | "DESIGNER"; active?: boolean; locale?: Locale; avatarAt?: string | null; leadId?: string | null; branchId?: string | null };
 export type Task = {
   id: number; title: string; brief: string; type: string; size: string; due: string | null; priority: string; status: string;
-  revisions: number; coverFileId: string | null; brandId: string | null; assigneeId: string | null; createdById: string; createdAt: string; updatedAt: string;
+  revisions: number; coverFileId: string | null; brandId: string | null; branchId: string | null; assigneeId: string | null; createdById: string; createdAt: string; updatedAt: string;
   _count: { files: number; activity: number };
 };
-export type Brand = { id: string; slug: string; name: string; color: string; logoId: string | null; _count?: { assets: number } };
+export type Branch = { id: string; slug: string; name: string; nameEn: string; code: string };
+export type Brand = { id: string; slug: string; name: string; color: string; logoId: string | null; branches?: Branch[]; _count?: { assets: number } };
 export type BrandAsset = { id: string; brandId: string; category: string; name: string; value: string | null; mime: string | null; size: number | null; hasFile: boolean; uploadedById: string; createdAt: string };
 export type Activity = { id: string; userId: string | null; kind: string; text: string | null; toStatus: string | null; round: number | null; createdAt: string };
 export type FileRow = { id: string; slot: string; kind: string; name: string; href: string; mime: string | null; size: number | null; uploadedById: string; createdAt: string; pending?: boolean };

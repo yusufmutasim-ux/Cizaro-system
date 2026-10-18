@@ -18,16 +18,17 @@ type Props = {
   userById: Record<string, User>;
   brands: Brand[];
   defaultBrandId?: string;
+  defaultBranchId?: string;
   onClose: () => void;
   onChanged: () => void;
   onCreated: (id: number) => void;
   say: (m: string) => void;
 };
 
-type Form = { title: string; brief: string; type: string; size: string; due: string; priority: string; assigneeId: string; brandId: string };
-const fromTask = (x: Task): Form => ({ brandId: x.brandId ?? "", title: x.title, brief: x.brief, type: x.type, size: x.size, due: x.due ?? "", priority: x.priority, assigneeId: x.assigneeId ?? "" });
+type Form = { title: string; brief: string; type: string; size: string; due: string; priority: string; assigneeId: string; brandId: string; branchId: string };
+const fromTask = (x: Task): Form => ({ brandId: x.brandId ?? "", branchId: x.branchId ?? "", title: x.title, brief: x.brief, type: x.type, size: x.size, due: x.due ?? "", priority: x.priority, assigneeId: x.assigneeId ?? "" });
 
-export default function TaskSheet({ id, me, users, userById, brands, defaultBrandId, onClose, onChanged, onCreated, say }: Props) {
+export default function TaskSheet({ id, me, users, userById, brands, defaultBrandId, defaultBranchId, onClose, onChanged, onCreated, say }: Props) {
   const i = useI18n();
   const { t } = i;
   const isDraft = id === "draft";
@@ -37,13 +38,24 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
   const [activity, setActivity] = useState<Activity[]>([]);
   const [files, setFiles] = useState<FileRow[]>([]);
   const [pending, setPending] = useState<FileRow[]>([]);
-  const [form, setForm] = useState<Form>({ brandId: defaultBrandId ?? "", title: "", brief: "", type: "social", size: "1080×1350", due: "", priority: "normal", assigneeId: "" });
+  const [form, setForm] = useState<Form>({ brandId: defaultBrandId ?? "", branchId: "", title: "", brief: "", type: "social", size: "1080×1350", due: "", priority: "normal", assigneeId: "" });
   const [note, setNote] = useState("");
   const [comment, setComment] = useState("");
   const [links, setLinks] = useState({ ref: "", delivery: "" });
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
   const [customSize, setCustomSize] = useState(false);
+  const fixedBranch = !isManager && me.branchId ? me.branchId : null;
+  const branchesOf = (brandId: string) => brands.find((b) => b.id === brandId)?.branches ?? [];
+  const defaultBranch = (brandId: string, prefer?: string) => {
+    const ids = branchesOf(brandId).map((b) => b.id);
+    if (!ids.length) return "";
+    return [fixedBranch, prefer, me.branchId].find((x): x is string => !!x && ids.includes(x)) ?? ids[0];
+  };
+  useEffect(() => {
+    if (isDraft) setForm((f) => (f.branchId ? f : { ...f, branchId: defaultBranch(f.brandId, defaultBranchId) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDraft, brands.length]);
   const focused = useRef<keyof Form | null>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const timers = useRef<Partial<Record<keyof Form, ReturnType<typeof setTimeout>>>>({});
@@ -86,6 +98,8 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
     try {
       const x = await api<Task>(`/api/tasks/${task.id}`, { method: "PATCH", json: { [field]: field === "assigneeId" ? value || null : value } });
       setTask(x); onChanged();
+      // The server picks the branch (and may clear a designer from the other office) when brand or branch changes
+      if (field === "brandId" || field === "branchId") setForm((f) => ({ ...f, branchId: x.branchId ?? "", assigneeId: x.assigneeId ?? "" }));
     } catch (e) { say((e as Error).message); }
   }
 
@@ -332,8 +346,17 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
                 {brands.length > 0 && (
                   <div className="field"><span className="fi" style={{ background: brands.find((b) => b.id === form.brandId)?.color ?? "var(--brand)" }}><I name="tag" /></span><label htmlFor="fBrand">{t("field.brand")}</label>
                     <div className="fv">
-                      <Picker id="fBrand" label={t("field.brand")} value={form.brandId} onChange={(v) => set("brandId", v, mode("now"))}
+                      <Picker id="fBrand" label={t("field.brand")} value={form.brandId}
+                        onChange={(v) => { if (isDraft) setForm((f) => ({ ...f, brandId: v, branchId: defaultBranch(v, f.branchId), assigneeId: "" })); else set("brandId", v, "now"); }}
                         options={brands.map((b) => ({ value: b.id, label: b.name, iconOnly: b.slug === "dym", icon: <BrandMark brand={b} size={20} /> }))} />
+                    </div></div>
+                )}
+                {branchesOf(form.brandId).length > 0 && (
+                  <div className="field"><span className="fi" style={{ background: "var(--teal, #0fa5a5)" }}><I name="globe" /></span><label htmlFor="fBranch">{t("field.branch")}</label>
+                    <div className="fv">
+                      <Picker id="fBranch" label={t("field.branch")} value={form.branchId} disabled={!!fixedBranch}
+                        onChange={(v) => { if (isDraft) setForm((f) => ({ ...f, branchId: v, assigneeId: "" })); else set("branchId", v, "now"); }}
+                        options={branchesOf(form.brandId).map((b) => ({ value: b.id, label: i.l === "ar" ? b.name : b.nameEn, icon: <span className="branch-code">{b.code}</span> }))} />
                     </div></div>
                 )}
                 <div className="field"><span className="fi" style={{ background: "var(--blue)" }}><I name="person" /></span><label htmlFor="fAs">{t("field.designer")}</label>
@@ -343,7 +366,7 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
                         ? <Link href="/team" className="pop-cta" onClick={close}><I name="people" /><span><b>{t("assign.addMembers")}</b><small>{t("assign.addMembersHint")}</small></span></Link>
                         : undefined}
                       options={[...(assignable.canClear ? [{ value: "", label: t("card.unassigned"), icon: <Avatar user={null} /> }] : []),
-                        ...users.filter((u) => (u.active !== false && assignable.allowed(u.id)) || u.id === form.assigneeId)
+                        ...users.filter((u) => (u.active !== false && assignable.allowed(u.id) && (!form.branchId || !u.branchId || u.role === "MANAGER" || u.branchId === form.branchId)) || u.id === form.assigneeId)
                           .map((u) => ({ value: u.id, label: u.name + (u.id === me.id ? ` ${t("field.you")}` : ""), icon: <Avatar user={u} /> }))]} />
                   </div></div>
                 {!isManager && !isDraft && task && (assignable.canChange ? hasTeam : true) && (

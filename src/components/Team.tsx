@@ -4,6 +4,7 @@ import { useApp } from "./App";
 import { Picker } from "./Pickers";
 import { useRouter } from "next/navigation";
 import { useData } from "@/lib/cache";
+import type { Brand } from "@/lib/client";
 import { Avatar } from "./Avatar";
 import { I } from "./Icons";
 import { useI18n } from "./I18n";
@@ -15,6 +16,11 @@ export default function Team() {
   useEffect(() => { if (me.role !== "MANAGER") router.replace("/"); }, [me.role, router]);
   const { t } = useI18n();
   const usersQ = useData<User[]>("/api/users");
+  const brands = useData<Brand[]>("/api/brands").data ?? [];
+  const { l } = useI18n();
+  const branchOpts = [{ value: "", label: t("branch.none") }, ...brands.flatMap((b) => (b.branches ?? []).map((br) => ({
+    value: br.id, label: `${b.name} · ${l === "ar" ? br.name : br.nameEn}`, icon: <span className="branch-code">{br.code}</span>,
+  })))];
   const users = usersQ.data ?? [];
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "DESIGNER" });
   const [err, setErr] = useState("");
@@ -57,8 +63,9 @@ export default function Team() {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 650 }}>{u.name}{u.id === me.id ? ` ${t("field.you")}` : ""}</div>
                   <div className="em">{u.email}</div>
-                  {(u.leadId || users.some((x) => x.leadId === u.id)) && (
+                  {(u.branchId || u.leadId || users.some((x) => x.leadId === u.id)) && (
                     <div className="reports-line">
+                      {u.branchId && <span>{t("field.branch")} <b>{brands.flatMap((b) => b.branches ?? []).find((x) => x.id === u.branchId)?.[l === "ar" ? "name" : "nameEn"]}</b></span>}
                       {u.leadId && <span>{t("team.reportsTo")} <b>{users.find((x) => x.id === u.leadId)?.name ?? "—"}</b></span>}
                       {users.some((x) => x.leadId === u.id) && <span>{t("team.leads", { n: users.filter((x) => x.leadId === u.id).length })}</span>}
                     </div>
@@ -71,6 +78,10 @@ export default function Team() {
                   )}
                 </div>
                 <div className="acts">
+                  {branchOpts.length > 1 && <>
+                    <span className="acts-label">{t("field.branch")}</span>
+                    <Picker variant="pill" label={t("field.branch")} value={u.branchId ?? ""} onChange={(v) => update(u.id, { branchId: v || null })} options={branchOpts} />
+                  </>}
                   <span className="acts-label">{t("team.reportsTo")}</span>
                   <Picker variant="pill" label={t("team.reportsTo")} value={u.leadId ?? ""} onChange={(v) => update(u.id, { leadId: v || null })}
                     options={[{ value: "", label: t("team.noLead"), icon: <Avatar user={null} /> },

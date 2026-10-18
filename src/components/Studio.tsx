@@ -36,6 +36,7 @@ export default function Studio() {
   const users = useData<User[]>("/api/users").data ?? [];
   const brands = useData<Brand[]>("/api/brands").data ?? [];
   const [brand, setBrand] = useState<string>(() => { try { return localStorage.getItem("cz-brand") || "all"; } catch { return "all"; } });
+  const [branchPick, setBranchPick] = useState<string>(() => { try { return localStorage.getItem("cz-branch") || "all"; } catch { return "all"; } });
   const [view, setView] = useState<"board" | "list">("board");
   const [tile, setTile] = useState<Tile | "">("");
   const [fAssignee, setFAssignee] = useState("");
@@ -85,8 +86,15 @@ export default function Studio() {
 
   const userById = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
   const brandById = useMemo(() => Object.fromEntries(brands.map((b) => [b.id, b])), [brands]);
-  const all = (tasks ?? []).filter((x) => brand === "all" || x.brandId === brand);
   const current = brand === "all" ? null : brandById[brand];
+  // Branches split a brand's work by office. People with a branch only ever see theirs; managers can switch.
+  const branches = current?.branches ?? [];
+  const fixedBranch = !isManager && me.branchId && branches.some((b) => b.id === me.branchId) ? me.branchId : null;
+  const branch = fixedBranch ?? (branches.some((b) => b.id === branchPick) ? branchPick : "all");
+  const branchById = useMemo(() => Object.fromEntries(brands.flatMap((b) => b.branches ?? []).map((b) => [b.id, b])), [brands]);
+  const all = (tasks ?? []).filter((x) => (brand === "all" || x.brandId === brand) && (!branches.length || branch === "all" || x.branchId === branch));
+  const pickBranch = (b: string) => { setBranchPick(b); try { localStorage.setItem("cz-branch", b); } catch {} };
+  const branchName = (id: string) => { const b = branchById[id]; return b ? (i.l === "ar" ? b.name : b.nameEn) : ""; };
   useBrandTheme(current);
   const pickBrand = (b: string) => { setBrand(b); try { localStorage.setItem("cz-brand", b); } catch {} };
 
@@ -144,6 +152,7 @@ export default function Studio() {
         {x.coverFileId && <div className="cover"><img src={`/api/files/${x.coverFileId}`} alt="" loading="lazy" /></div>}
         <div className="card-top">
           {brand === "all" && brandById[x.brandId ?? ""] && <BrandMark brand={brandById[x.brandId!]} size={16} />}
+          {(brand === "all" || branch === "all") && x.branchId && branchById[x.branchId] && <span className="branch-code" title={branchName(x.branchId)}>{branchById[x.branchId].code}</span>}
           <span>{i.type(x.type)}</span>
           {x.priority === "urgent" && <span className="flag"><I name="flag" />{i.priority("urgent")}</span>}
           {x.priority === "high" && <span className="flag high"><I name="flag" />{i.priority("high")}</span>}
@@ -268,6 +277,15 @@ export default function Studio() {
           </div>
         )}
 
+        {branches.length > 0 && (
+          <div className="branch-bar" key={`branches-${brand}`}>
+            {fixedBranch
+              ? <span className="branch-fixed"><I name="globe" />{t("branch.yours")}: <b>{branchName(fixedBranch)}</b></span>
+              : <Segmented label={t("field.branch")} value={branch} onChange={pickBranch} className="branch-seg"
+                  options={[...branches.map((b) => ({ value: b.id, label: <><span className="branch-code">{b.code}</span>{i.l === "ar" ? b.name : b.nameEn}</> })), { value: "all", label: t("branch.all") }]} />}
+          </div>
+        )}
+
         <section className="tiles" key={`tiles-${brand}`} aria-label={t("tasks.title")}>
           {tiles.map((x) => (
             <button key={x.k} type="button" className="tile" aria-pressed={tile === x.k} style={{ ["--tile-c" as string]: x.c }} onClick={() => setTile(tile === x.k ? "" : x.k)}>
@@ -292,7 +310,7 @@ export default function Studio() {
       </main>
 
       {open !== null && (
-        <TaskSheet key={String(open)} id={open} me={me} users={users} userById={userById} brands={brands} defaultBrandId={brand !== "all" ? brand : brands[0]?.id}
+        <TaskSheet key={String(open)} id={open} me={me} users={users} userById={userById} brands={brands} defaultBrandId={brand !== "all" ? brand : brands[0]?.id} defaultBranchId={branch !== "all" ? branch : undefined}
           onClose={() => setOpen(null)} onChanged={load} onCreated={(id) => setOpen(id)} say={say} />
       )}
       <Portal><div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div></Portal>
