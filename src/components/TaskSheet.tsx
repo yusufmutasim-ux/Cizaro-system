@@ -5,7 +5,7 @@ import { I } from "./Icons";
 import { useI18n } from "./I18n";
 import { SIZES, STATUSES, PRIORITY_KEYS, ref, statusColor, type Status } from "@/lib/vocab";
 import { TYPE_KEYS } from "@/lib/i18n";
-import { api, kb, type Activity, type Brand, type FileRow, type Task, type User } from "@/lib/client";
+import { api, kb, subordinatesOf, type Activity, type Brand, type FileRow, type Task, type User } from "@/lib/client";
 import { BrandMark } from "./BrandMark";
 import { Picker, DatePicker } from "./Pickers";
 import { Portal } from "./Portal";
@@ -241,6 +241,7 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
     const slot = a.toStatus === "delivery" ? t("activity.slotDelivery") : t("activity.slotRef");
     let sys: React.ReactNode = null;
     if (a.kind === "created") sys = t("activity.created");
+    else if (a.kind === "assign") sys = a.text ? <>{t("activity.assigned")} <b>{person(a.text)?.name ?? t("activity.formerMember")}</b></> : t("activity.unassigned");
     else if (a.kind === "status") sys = <>{t("activity.moved")} <b style={{ color: statusColor(a.toStatus ?? "") }}>{i.status(a.toStatus ?? "new")}</b></>;
     else if (a.kind === "file") sys = a.toStatus ? t("activity.uploaded", { slot, name: a.text ?? "" }) : a.text;
     else if (a.kind === "link") sys = t("activity.linked", { slot, name: a.text ?? "" });
@@ -252,6 +253,15 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
       : null;
     return <div key={a.id} className="ev"><Avatar user={u} size="lg" /><div>{head}<div>{badge}</div>{a.text && <div className="txt">{a.text}</div>}</div></div>;
   }
+
+  // Managers assign anyone. Everyone else can hand a task that's theirs (or a new one) to themselves or their reports.
+  const assignable = (() => {
+    if (isManager) return { canChange: true, canClear: true, allowed: () => true };
+    const subs = subordinatesOf(me.id, users);
+    const ours = (id: string | null | undefined) => id === me.id || (!!id && subs.has(id));
+    return { canChange: isDraft || ours(task?.assigneeId), canClear: isDraft, allowed: (id: string) => ours(id) };
+  })();
+  const hasTeam = subordinatesOf(me.id, users).size > 0;
 
   const ready = isDraft || task;
 
@@ -327,10 +337,14 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
                 )}
                 <div className="field"><span className="fi" style={{ background: "var(--blue)" }}><I name="person" /></span><label htmlFor="fAs">{t("field.designer")}</label>
                   <div className="fv">
-                    <Picker id="fAs" label={t("field.designer")} value={form.assigneeId} onChange={(v) => set("assigneeId", v, mode("now"))}
-                      options={[{ value: "", label: t("card.unassigned"), icon: <Avatar user={null} /> },
-                        ...users.filter((u) => u.active !== false || u.id === form.assigneeId).map((u) => ({ value: u.id, label: u.name + (u.id === me.id ? ` ${t("field.you")}` : ""), icon: <Avatar user={u} /> }))]} />
+                    <Picker id="fAs" label={t("field.designer")} value={form.assigneeId} disabled={!assignable.canChange} onChange={(v) => set("assigneeId", v, mode("now"))}
+                      options={[...(assignable.canClear ? [{ value: "", label: t("card.unassigned"), icon: <Avatar user={null} /> }] : []),
+                        ...users.filter((u) => (u.active !== false && assignable.allowed(u.id)) || u.id === form.assigneeId)
+                          .map((u) => ({ value: u.id, label: u.name + (u.id === me.id ? ` ${t("field.you")}` : ""), icon: <Avatar user={u} /> }))]} />
                   </div></div>
+                {!isManager && !isDraft && task && (assignable.canChange ? hasTeam : true) && (
+                  <div className="field-hint">{assignable.canChange ? t("assign.hint") : t("assign.locked")}</div>
+                )}
                 <div className="field"><span className="fi" style={{ background: "var(--red)" }}><I name="cal" /></span><label htmlFor="fDue">{t("field.due")}</label>
                   <div className="fv"><DatePicker id="fDue" label={t("field.due")} value={form.due} onChange={(v) => set("due", v, mode("now"))} /></div></div>
                 <div className="field"><span className="fi" style={{ background: "var(--orange)" }}><I name="flag" /></span><label htmlFor="fPri">{t("field.priority")}</label>

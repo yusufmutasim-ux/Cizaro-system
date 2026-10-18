@@ -20,6 +20,9 @@ model User {
   avatarKey    String?    // profile photo, relative to STORAGE_DIR
   avatarAt     DateTime?  // bumps the photo URL when it changes
   notifyPrefs  String     @default("{}") // JSON map of notification kind -> false when muted
+  leadId       String?    // who this person reports to; they can hand their tasks down to their reports
+  lead         User?      @relation("reports", fields: [leadId], references: [id], onDelete: SetNull)
+  reports      User[]     @relation("reports")
   createdAt    DateTime   @default(now())
   assigned     Task[]     @relation("assignee")
   created      Task[]     @relation("creator")
