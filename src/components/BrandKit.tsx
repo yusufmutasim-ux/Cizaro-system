@@ -4,7 +4,7 @@ import { Shell } from "./Shell";
 import { I, type IconName } from "./Icons";
 import { useI18n } from "./I18n";
 import { Segmented, useFlip } from "./Motion";
-import { BrandMark } from "./BrandMark";
+import { BrandMark, BrandSignature, useBrandTheme } from "./BrandMark";
 import { api, kb, type Brand, type BrandAsset, type User } from "@/lib/client";
 import type { Key } from "@/lib/i18n";
 
@@ -59,6 +59,7 @@ export default function BrandKit({ me }: { me: User }) {
   useEffect(() => { setAssets(null); loadAssets(); }, [loadAssets]);
 
   const brand = brands.find((b) => b.id === brandId);
+  useBrandTheme(brand);
   const by = useMemo(() => {
     const m: Record<Cat, BrandAsset[]> = { logo: [], font: [], color: [], guideline: [], template: [], other: [] };
     (assets ?? []).forEach((a) => (m[a.category as Cat] ?? m.other).push(a));
@@ -248,16 +249,17 @@ export default function BrandKit({ me }: { me: User }) {
         {brands.length > 0 && (
           <div className="brand-tabs">
             <Segmented label={t("field.brand")} value={brandId} onChange={pick} className="brand-seg"
-              options={brands.map((b) => ({ value: b.id, label: <><BrandMark brand={b} size={22} />{b.name}</> }))} />
+              options={brands.map((b) => ({ value: b.id, label: <><BrandMark brand={b} size={22} />{b.slug === "dym" ? <span className="sr-only">{b.name}</span> : b.name}</> }))} />
           </div>
         )}
 
         {brand && (
           <div key={brand.id} className="enter">
             <div className="kit-hero glass" style={{ ["--bc" as string]: brand.color }}>
-              <BrandMark brand={brand} size={64} />
+              {brand.slug !== "dym" && <BrandMark brand={brand} size={64} />}
               <div className="grow">
-                <h2>{brand.name}</h2>
+                {brand.slug === "dym" ? <h2 className="sr-only">{brand.name}</h2> : <h2>{brand.name}</h2>}
+                {brand.slug === "dym" && <BrandSignature brand={brand} />}
                 <div className="sub">{t("kit.files", { n: brand._count?.assets ?? 0 })}</div>
               </div>
               {isManager && (

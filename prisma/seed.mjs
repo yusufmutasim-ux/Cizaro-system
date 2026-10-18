@@ -7,9 +7,12 @@ const { ADMIN_NAME = "Admin", ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
 
 const BRANDS = [
   { slug: "cizaro", name: "Cizaro", color: "#3b47b0", sort: 0 },
-  { slug: "dym", name: "DYM", color: "#111111", sort: 1 },
+  { slug: "dym", name: "DYM", color: "#7B4DE8", sort: 1 },
 ];
 for (const b of BRANDS) await prisma.brand.upsert({ where: { slug: b.slug }, update: {}, create: b });
+
+// DYM briefly shipped with a placeholder black; move it to the brand purple unless someone picked a color since
+await prisma.brand.updateMany({ where: { slug: "dym", color: "#111111" }, data: { color: "#7B4DE8" } });
 
 // Tasks created before brands existed belong to Cizaro
 const cizaro = await prisma.brand.findUnique({ where: { slug: "cizaro" } });

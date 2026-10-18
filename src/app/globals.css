@@ -562,3 +562,93 @@ main.wrap > .toolbar { animation-delay: .12s; }
 
 .banner.danger { margin-bottom: 16px; color: var(--ink); background: color-mix(in srgb, var(--red) 14%, var(--glass)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--red) 45%, transparent), var(--shadow); }
 .banner.danger .i { color: var(--red); }
+
+/* ---------- Brand identities ----------
+   The app follows the brand you're looking at. Tokens are registered so the switch animates. */
+@property --bg { syntax: "<color>"; inherits: true; initial-value: #eceef9; }
+@property --accent { syntax: "<color>"; inherits: true; initial-value: #3b47b0; }
+@property --blob-1 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --blob-2 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --blob-3 { syntax: "<color>"; inherits: true; initial-value: transparent; }
+:root { transition: --bg .8s var(--spring), --accent .8s var(--spring), --blob-1 1.2s ease, --blob-2 1.2s ease, --blob-3 1.2s ease; }
+
+/* DYM — playful: soft lavender base, purple action, pink and lime as accents only */
+:root[data-brand="dym"] {
+  --bg: #f1e9fd;
+  --ink: #1a1225;
+  --ink-2: rgba(26, 18, 37, 0.6);
+  --ink-3: rgba(26, 18, 37, 0.36);
+  --fill: rgba(74, 44, 158, 0.07);
+  --fill-2: rgba(74, 44, 158, 0.045);
+  --sep: rgba(74, 44, 158, 0.12);
+  --glass: rgba(255, 255, 255, 0.5);
+  --glass-strong: rgba(251, 247, 255, 0.88);
+  --glass-thin: rgba(255, 255, 255, 0.34);
+  --card: rgba(255, 255, 255, 0.86);
+  --edge: rgba(74, 44, 158, 0.08);
+  --shadow: 0 12px 34px -14px rgba(74, 44, 158, 0.32), 0 2px 6px rgba(74, 44, 158, 0.06);
+  --shadow-lift: 0 22px 50px -18px rgba(74, 44, 158, 0.42), 0 4px 12px rgba(74, 44, 158, 0.08);
+  --brand: #c0b4d9;
+  --brand-deep: #4a2c9e;
+  --accent: #7b4de8;
+  --accent-soft: rgba(123, 77, 232, 0.14);
+  --pink: #f45fcb;
+  --lime: #d4f25c;
+  --blob-1: rgba(192, 163, 255, 0.6);
+  --blob-2: rgba(255, 111, 216, 0.34);
+  --blob-3: rgba(212, 242, 92, 0.42);
+  --r-xl: 32px; --r-lg: 26px; --r-md: 20px;
+  --font-display: "Unbounded", -apple-system, BlinkMacSystemFont, "SF Arabic", "IBM Plex Sans Arabic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="dym"] {
+    --bg: #120b1e;
+    --ink: #f6f0ff;
+    --ink-2: rgba(246, 240, 255, 0.62);
+    --ink-3: rgba(246, 240, 255, 0.36);
+    --fill: rgba(255, 255, 255, 0.08);
+    --fill-2: rgba(255, 255, 255, 0.05);
+    --sep: rgba(255, 255, 255, 0.1);
+    --glass: rgba(70, 40, 120, 0.32);
+    --glass-strong: rgba(28, 17, 46, 0.88);
+    --glass-thin: rgba(255, 255, 255, 0.045);
+    --card: rgba(255, 255, 255, 0.075);
+    --edge: rgba(0, 0, 0, 0.35);
+    --shadow: 0 14px 40px -14px rgba(0, 0, 0, 0.7);
+    --shadow-lift: 0 24px 60px -18px rgba(0, 0, 0, 0.85);
+    --accent: #a982ff;
+    --accent-soft: rgba(169, 130, 255, 0.2);
+    --blob-1: rgba(140, 90, 240, 0.45);
+    --blob-2: rgba(240, 90, 200, 0.28);
+    --blob-3: rgba(190, 230, 70, 0.16);
+  }
+}
+
+/* Any other brand: tint the Cizaro base with its own color */
+:root[data-brand="custom"] {
+  --accent: var(--brand-custom, #3b47b0);
+  --accent-soft: color-mix(in srgb, var(--brand-custom, #3b47b0) 14%, transparent);
+  --blob-1: color-mix(in srgb, var(--brand-custom, #3b47b0) 40%, transparent);
+}
+
+/* DYM details: retro display type on Latin headings, pink/lime sparks on the controls that carry identity */
+:root[data-brand="dym"] .head h1:lang(en), :root[data-brand="dym"] .kit-hero h2 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; }
+:root[data-brand="dym"] .btn-primary { background: linear-gradient(180deg, #9a72ff, var(--accent) 60%, #5c34c4); }
+:root[data-brand="dym"] .fab { background: radial-gradient(120% 120% at 30% 20%, #b99cff, var(--accent) 55%, #4a2c9e); }
+:root[data-brand="dym"] .tile[aria-pressed="true"] .dot { color: var(--accent); }
+:root[data-brand="dym"] .seg .thumb { box-shadow: inset 0 1px 0 var(--rim), 0 0 0 1.5px color-mix(in srgb, var(--pink) 55%, transparent), 0 4px 14px rgba(244, 95, 203, .25); }
+:root[data-brand="dym"] .col-h .add { background: var(--lime); color: #1a1225; }
+:root[data-brand="dym"] .chip.size { background: color-mix(in srgb, var(--lime) 45%, transparent); color: var(--ink); }
+:root[data-brand="dym"] .card { border-radius: var(--r-md); }
+:root[data-brand="dym"] .kit-hero::after { background: radial-gradient(90% 140% at 100% 0%, rgba(255, 111, 216, .3), transparent 60%), radial-gradient(80% 120% at 0% 100%, rgba(212, 242, 92, .35), transparent 60%); }
+
+.dym-word { display: inline-flex; align-items: center; flex: none; }
+.dym-word img { height: 100%; width: auto; display: block; }
+.brand-sig { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 650; font-size: 15px; color: var(--ink-2); animation: rise .6s var(--spring) both; }
+.brand-sig.dym { flex-direction: column; align-items: flex-start; gap: 2px; }
+.brand-sig.dym img { height: 30px; width: auto; }
+.brand-sig.dym em { font-style: normal; font-family: "Unbounded", var(--font); font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: #1a1225; background: var(--lime, #d4f25c); padding: 3px 9px; border-radius: 999px; }
+.on-dark { display: none !important; }
+@media (prefers-color-scheme: dark) { .on-light { display: none !important; } .on-dark { display: block !important; } }
+.kit-hero .brand-sig { margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
