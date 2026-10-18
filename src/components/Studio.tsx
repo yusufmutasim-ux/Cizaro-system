@@ -1,7 +1,9 @@
 "use client";
+import { Portal } from "./Portal";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "./App";
+import { Picker } from "./Pickers";
 import { useData } from "@/lib/cache";
 import { Avatar } from "./Avatar";
 import { I, type IconName } from "./Icons";
@@ -279,15 +281,10 @@ export default function Studio() {
         <div className="toolbar">
           <Segmented label={t("view.board")} value={view} onChange={(v) => { setView(v); try { localStorage.setItem("cz-view", v); } catch {} }}
             options={[{ value: "board", label: t("view.board") }, { value: "list", label: t("view.list") }]} />
-          <select className="select" id="fAssignee" aria-label={t("field.designer")} value={fAssignee} onChange={(e) => setFAssignee(e.target.value)}>
-            <option value="">{t("filter.allDesigners")}</option>
-            {assigned.map((id) => <option key={id} value={id}>{userById[id]?.name ?? "—"}</option>)}
-            <option value="_none">{t("filter.unassigned")}</option>
-          </select>
-          <select className="select" id="fType" aria-label={t("field.type")} value={fType} onChange={(e) => setFType(e.target.value)}>
-            <option value="">{t("filter.allTypes")}</option>
-            {usedTypes.map((x) => <option key={x} value={x}>{i.type(x)}</option>)}
-          </select>
+          <Picker id="fAssignee" variant="pill" label={t("field.designer")} value={fAssignee} onChange={setFAssignee}
+            options={[{ value: "", label: t("filter.allDesigners") }, ...assigned.map((id) => ({ value: id, label: userById[id]?.name ?? "—", icon: <Avatar user={userById[id]} /> })), { value: "_none", label: t("filter.unassigned"), icon: <Avatar user={null} /> }]} />
+          <Picker id="fType" variant="pill" label={t("field.type")} value={fType} onChange={setFType}
+            options={[{ value: "", label: t("filter.allTypes") }, ...usedTypes.map((x) => ({ value: x, label: i.type(x) }))]} />
           {filtered && <div className="filter-note"><span>{t("filter.count", { shown: visible.length, total: all.length })}</span><button type="button" onClick={clear}>{t("filter.clear")}</button></div>}
         </div>
 
@@ -298,7 +295,7 @@ export default function Studio() {
         <TaskSheet key={String(open)} id={open} me={me} users={users} userById={userById} brands={brands} defaultBrandId={brand !== "all" ? brand : brands[0]?.id}
           onClose={() => setOpen(null)} onChanged={load} onCreated={(id) => setOpen(id)} say={say} />
       )}
-      <div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div>
+      <Portal><div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div></Portal>
     </>
   );
 }

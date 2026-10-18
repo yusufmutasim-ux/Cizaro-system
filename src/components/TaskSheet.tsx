@@ -7,6 +7,8 @@ import { SIZES, STATUSES, PRIORITY_KEYS, ref, statusColor, type Status } from "@
 import { TYPE_KEYS } from "@/lib/i18n";
 import { api, kb, type Activity, type Brand, type FileRow, type Task, type User } from "@/lib/client";
 import { BrandMark } from "./BrandMark";
+import { Picker, DatePicker } from "./Pickers";
+import { Portal } from "./Portal";
 
 type Props = {
   id: number | "draft";
@@ -40,6 +42,7 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
   const [links, setLinks] = useState({ ref: "", delivery: "" });
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [customSize, setCustomSize] = useState(false);
   const focused = useRef<keyof Form | null>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const timers = useRef<Partial<Record<keyof Form, ReturnType<typeof setTimeout>>>>({});
@@ -253,7 +256,7 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
   const ready = isDraft || task;
 
   return (
-    <>
+    <Portal>
       <div className={`scrim ${on ? "on" : ""}`} onClick={close} />
       <div className={`sheet ${on ? "on" : ""}`} role="dialog" aria-modal="true" aria-label={task?.title ?? t("sheet.new")}>
         <div className="sheet-bar">
@@ -318,36 +321,39 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
                 {brands.length > 0 && (
                   <div className="field"><span className="fi" style={{ background: brands.find((b) => b.id === form.brandId)?.color ?? "var(--brand)" }}><I name="tag" /></span><label htmlFor="fBrand">{t("field.brand")}</label>
                     <div className="fv">
-                      {brands.find((b) => b.id === form.brandId) && <BrandMark brand={brands.find((b) => b.id === form.brandId)!} size={22} />}
-                      <select id="fBrand" value={form.brandId} onChange={(e) => set("brandId", e.target.value, mode("now"))}>
-                        {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                      </select>
+                      <Picker id="fBrand" label={t("field.brand")} value={form.brandId} onChange={(v) => set("brandId", v, mode("now"))}
+                        options={brands.map((b) => ({ value: b.id, label: b.name, iconOnly: b.slug === "dym", icon: <BrandMark brand={b} size={20} /> }))} />
                     </div></div>
                 )}
                 <div className="field"><span className="fi" style={{ background: "var(--blue)" }}><I name="person" /></span><label htmlFor="fAs">{t("field.designer")}</label>
                   <div className="fv">
-                    {form.assigneeId && <Avatar user={userById[form.assigneeId]} />}
-                    <select id="fAs" value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value, mode("now"))}>
-                      <option value="">{t("card.unassigned")}</option>
-                      {users.filter((u) => u.active !== false || u.id === form.assigneeId).map((u) => <option key={u.id} value={u.id}>{u.name}{u.id === me.id ? ` ${t("field.you")}` : ""}</option>)}
-                    </select>
+                    <Picker id="fAs" label={t("field.designer")} value={form.assigneeId} onChange={(v) => set("assigneeId", v, mode("now"))}
+                      options={[{ value: "", label: t("card.unassigned"), icon: <Avatar user={null} /> },
+                        ...users.filter((u) => u.active !== false || u.id === form.assigneeId).map((u) => ({ value: u.id, label: u.name + (u.id === me.id ? ` ${t("field.you")}` : ""), icon: <Avatar user={u} /> }))]} />
                   </div></div>
                 <div className="field"><span className="fi" style={{ background: "var(--red)" }}><I name="cal" /></span><label htmlFor="fDue">{t("field.due")}</label>
-                  <div className="fv"><input type="date" id="fDue" value={form.due} onChange={(e) => set("due", e.target.value, mode("now"))} /></div></div>
+                  <div className="fv"><DatePicker id="fDue" label={t("field.due")} value={form.due} onChange={(v) => set("due", v, mode("now"))} /></div></div>
                 <div className="field"><span className="fi" style={{ background: "var(--orange)" }}><I name="flag" /></span><label htmlFor="fPri">{t("field.priority")}</label>
-                  <div className="fv"><select id="fPri" value={form.priority} onChange={(e) => set("priority", e.target.value, mode("now"))}>
-                    {PRIORITY_KEYS.map((k) => <option key={k} value={k}>{i.priority(k)}</option>)}
-                  </select></div></div>
+                  <div className="fv"><Picker id="fPri" label={t("field.priority")} value={form.priority} onChange={(v) => set("priority", v, mode("now"))}
+                    options={PRIORITY_KEYS.map((k) => ({ value: k, label: i.priority(k), icon: <span className={`pri-dot ${k}`} /> }))} /></div></div>
               </div>
               <div className="group">
                 <div className="field"><span className="fi" style={{ background: "var(--purple)" }}><I name="tag" /></span><label htmlFor="fTypeIn">{t("field.type")}</label>
-                  <div className="fv"><select id="fTypeIn" value={form.type} onChange={(e) => set("type", e.target.value, mode("now"))}>
-                    {TYPE_KEYS.map((k) => <option key={k} value={k}>{i.type(k)}</option>)}
-                  </select></div></div>
+                  <div className="fv"><Picker id="fTypeIn" label={t("field.type")} value={form.type} onChange={(v) => set("type", v, mode("now"))}
+                    options={TYPE_KEYS.map((k) => ({ value: k, label: i.type(k) }))} /></div></div>
                 <div className="field"><span className="fi" style={{ background: "var(--gray)" }}><I name="ruler" /></span><label htmlFor="fSize">{t("field.size")}</label>
-                  <div className="fv"><input type="text" id="fSize" list="sizes" placeholder="1080×1350" dir="ltr" value={form.size} {...bind("size")} onChange={(e) => set("size", e.target.value, "local")} /></div></div>
+                  <div className="fv">
+                    {customSize
+                      ? <input type="text" id="fSize" autoFocus placeholder={t("size.customPh")} dir="ltr" value={form.size} {...bind("size")}
+                          onBlur={() => { focused.current = null; setCustomSize(false); save("size", form.size.trim()); }}
+                          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                          onChange={(e) => set("size", e.target.value, "local")} />
+                      : <Picker id="fSize" ltr label={t("field.size")} value={form.size} placeholder="—"
+                          onChange={(v) => { if (v === "__custom") { setCustomSize(true); return; } set("size", v, mode("now")); }}
+                          options={[...(form.size && !SIZES.includes(form.size) ? [form.size] : []), ...SIZES].map((x) => ({ value: x, label: x }))
+                            .concat([{ value: "__custom", label: t("size.custom") }])} />}
+                  </div></div>
               </div>
-              <datalist id="sizes">{SIZES.map((x) => <option key={x} value={x} />)}</datalist>
               {isDraft ? (
                 <button type="button" className="btn btn-primary" style={{ height: 48 }} disabled={busy} onClick={create}><I name="plus" />{t("sheet.create")}</button>
               ) : task && (
@@ -360,6 +366,6 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
           </div>
         )}
       </div>
-    </>
+    </Portal>
   );
 }

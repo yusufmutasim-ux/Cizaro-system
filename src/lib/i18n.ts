@@ -130,6 +130,12 @@ const ar = {
   "date.today": "النهارده",
   "date.tomorrow": "بكرة",
   "date.yesterday": "إمبارح",
+  "date.none": "من غير ميعاد",
+  "date.clear": "شيل الميعاد",
+  "date.prev": "الشهر اللي فات",
+  "date.next": "الشهر الجاي",
+  "size.custom": "مقاس خاص…",
+  "size.customPh": "اكتب المقاس",
   "time.now": "دلوقتي",
 
   // Sheet
@@ -404,6 +410,12 @@ const en: Record<Key, string> = {
   "date.today": "Today",
   "date.tomorrow": "Tomorrow",
   "date.yesterday": "Yesterday",
+  "date.none": "No due date",
+  "date.clear": "Clear",
+  "date.prev": "Previous month",
+  "date.next": "Next month",
+  "size.custom": "Custom size…",
+  "size.customPh": "Type a size",
   "time.now": "just now",
 
   "sheet.new": "New Task",
