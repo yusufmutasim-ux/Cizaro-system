@@ -652,3 +652,19 @@ main.wrap > .toolbar { animation-delay: .12s; }
 @media (prefers-color-scheme: dark) { .on-light { display: none !important; } .on-dark { display: block !important; } }
 .kit-hero .brand-sig { margin: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Phone tab bar: sliding liquid glass thumb */
+.tabbar { position: relative; isolation: isolate; }
+.tabbar a, .tabbar button { position: relative; z-index: 1; }
+.tabbar [aria-current="page"] { background: transparent !important; box-shadow: none !important; }
+.tab-thumb {
+  position: absolute; z-index: 0; top: 6px; bottom: 6px; left: 0; width: 0; opacity: 0; border-radius: 999px;
+  background: var(--card);
+  box-shadow: inset 0 1px 0 var(--rim), inset 0 0 0 0.5px var(--rim-2), 0 4px 14px rgba(0, 0, 0, .14);
+  transition: translate .6s var(--bounce), width .45s var(--spring), opacity .2s;
+}
+.tab-thumb::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, rgba(255, 255, 255, .35), transparent 55%); mix-blend-mode: soft-light; }
+:root[data-brand="dym"] .tab-thumb { box-shadow: inset 0 1px 0 var(--rim), 0 0 0 1.5px color-mix(in srgb, var(--pink) 55%, transparent), 0 4px 14px rgba(244, 95, 203, .25); }
+@keyframes tabPop { 0% { transform: scale(.7) translateY(2px); } 55% { transform: scale(1.18) translateY(-2px); } 100% { transform: none; } }
+.tabbar [aria-current="page"] .i { animation: tabPop .55s var(--bounce); }
+@media (prefers-reduced-motion: reduce) { .tab-thumb { transition: none; } }
