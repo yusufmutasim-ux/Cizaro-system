@@ -8,7 +8,7 @@ export type Task = {
   _count: { files: number; activity: number };
 };
 export type Branch = { id: string; slug: string; name: string; nameEn: string; code: string };
-export type Brand = { id: string; slug: string; name: string; color: string; logoId: string | null; branches?: Branch[]; _count?: { assets: number } };
+export type Brand = { id: string; slug: string; name: string; color: string; logoId: string | null; branches?: Branch[]; _count?: { assets: number; tasks?: number } };
 export type BrandAsset = { id: string; brandId: string; category: string; name: string; value: string | null; mime: string | null; size: number | null; hasFile: boolean; uploadedById: string; createdAt: string };
 export type Activity = { id: string; userId: string | null; kind: string; text: string | null; toStatus: string | null; round: number | null; createdAt: string };
 export type FileRow = { id: string; slot: string; kind: string; name: string; href: string; mime: string | null; size: number | null; uploadedById: string; createdAt: string; pending?: boolean };
