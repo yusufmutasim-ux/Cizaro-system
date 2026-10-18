@@ -559,3 +559,6 @@ main.wrap > .toolbar { animation-delay: .12s; }
 .navlinks a, .tabbar a, .tabbar button { transition: background .35s var(--spring), color .25s, transform .3s var(--bounce); }
 .tabbar a:active, .tabbar button:active { transform: scale(.92); }
 .ring { transition: background .35s var(--spring), border-color .35s; }
+
+.banner.danger { margin-bottom: 16px; color: var(--ink); background: color-mix(in srgb, var(--red) 14%, var(--glass)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--red) 45%, transparent), var(--shadow); }
+.banner.danger .i { color: var(--red); }

@@ -22,7 +22,7 @@ function sortTasks(a: Task, b: Task) {
   return b.createdAt.localeCompare(a.createdAt);
 }
 
-export default function Studio({ me }: { me: User }) {
+export default function Studio({ me, storageWarning = false }: { me: User; storageWarning?: boolean }) {
   const i = useI18n();
   const { t } = i;
   const router = useRouter();
@@ -252,6 +252,10 @@ export default function Studio({ me }: { me: User }) {
             <button className="btn btn-primary" type="button" onClick={() => setOpen("draft")}><I name="plus" />{t("nav.new")}</button>
           </div>
         </section>
+
+        {storageWarning && (
+          <div className="banner danger" role="alert"><I name="warn" /><span><b>{t("warn.storageTitle")}</b> {t("warn.storageBody")}</span></div>
+        )}
 
         {brands.length > 0 && (
           <div className="brand-tabs">
