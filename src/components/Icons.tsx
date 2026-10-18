@@ -1,5 +1,5 @@
 // SF Symbols-style line icons, drawn once as a sprite and referenced with <I name="..." />
-export type IconName = "plus" | "search" | "cal" | "today" | "clock" | "eye" | "person" | "flag" | "tag" | "ruler" | "circle" | "clip" | "photo" | "doc" | "film" | "link" | "check" | "x" | "up" | "redo" | "tray" | "warn" | "trash" | "list" | "gear" | "people" | "bell" | "globe" | "out" | "phone" | "grid";
+export type IconName = "plus" | "search" | "cal" | "today" | "clock" | "eye" | "person" | "flag" | "tag" | "ruler" | "circle" | "clip" | "photo" | "doc" | "film" | "link" | "check" | "x" | "up" | "redo" | "tray" | "warn" | "trash" | "list" | "gear" | "people" | "bell" | "globe" | "out" | "phone" | "grid" | "chevL" | "chevR";
 
 export function IconSprite() {
   return (
@@ -35,6 +35,8 @@ export function IconSprite() {
     <symbol id="out" viewBox="0 0 24 24"><path d="M14 4.5h4a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5h-4"/><path d="M10 16.5 5.5 12 10 7.5M5.5 12H15"/></symbol>
     <symbol id="phone" viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="3"/><path d="M10.5 18.5h3"/></symbol>
     <symbol id="grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></symbol>
+    <symbol id="chevL" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></symbol>
+    <symbol id="chevR" viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></symbol>
     </svg>
   );
 }

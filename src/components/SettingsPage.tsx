@@ -1,4 +1,5 @@
 "use client";
+import { Portal } from "./Portal";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { I } from "./Icons";
 import { Avatar } from "./Avatar";
@@ -265,7 +266,7 @@ export default function SettingsPage() {
           <div className="note" style={{ textAlign: "center" }}>Cizaro Studio · {t("set.version")} 1.4</div>
         </div>
       </div>
-      <div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div>
+      <Portal><div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div></Portal>
     </main>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { Portal } from "./Portal";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "./App";
 import { useData } from "@/lib/cache";
@@ -272,7 +273,7 @@ export default function BrandKit() {
           </div>
         )}
       </main>
-      <div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div>
+      <Portal><div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div></Portal>
     </>
   );
 }

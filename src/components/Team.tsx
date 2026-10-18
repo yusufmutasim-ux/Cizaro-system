@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useApp } from "./App";
+import { Picker } from "./Pickers";
 import { useRouter } from "next/navigation";
 import { useData } from "@/lib/cache";
 import { Avatar } from "./Avatar";
@@ -64,10 +65,8 @@ export default function Team() {
                   )}
                 </div>
                 <div className="acts">
-                  <select className="select" aria-label={t("team.role")} value={u.role} disabled={u.id === me.id} onChange={(e) => update(u.id, { role: e.target.value })}>
-                    <option value="DESIGNER">{t("team.designer")}</option>
-                    <option value="MANAGER">{t("team.manager")}</option>
-                  </select>
+                  <Picker variant="pill" label={t("team.role")} value={u.role} disabled={u.id === me.id} onChange={(v) => update(u.id, { role: v })}
+                    options={[{ value: "DESIGNER", label: t("team.designer") }, { value: "MANAGER", label: t("team.manager") }]} />
                   <button type="button" className="btn btn-gray" onClick={() => { setResetFor(resetFor === u.id ? null : u.id); setNewPass(""); }}>{t("team.password")}</button>
                   {u.id !== me.id && (
                     <button type="button" className={`btn ${u.active ? "btn-danger" : "btn-tinted"}`} onClick={() => update(u.id, { active: !u.active })}>
@@ -84,10 +83,8 @@ export default function Team() {
               <input id="n-name" placeholder={t("team.name")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
               <input id="n-email" type="email" dir="ltr" placeholder={t("team.email")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
               <input id="n-pass" type="text" dir="ltr" placeholder={t("team.tempPass")} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} />
-              <select id="n-role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                <option value="DESIGNER">{t("team.designer")}</option>
-                <option value="MANAGER">{t("team.manager")}</option>
-              </select>
+              <div className="inset-pick"><Picker id="n-role" label={t("team.role")} value={form.role} onChange={(v) => setForm({ ...form, role: v })}
+                options={[{ value: "DESIGNER", label: t("team.designer") }, { value: "MANAGER", label: t("team.manager") }]} /></div>
             </div>
             <div className="err" role="alert">{err}</div>
             {msg && <div style={{ color: "var(--green)", fontSize: 13.5 }}>{msg}</div>}
