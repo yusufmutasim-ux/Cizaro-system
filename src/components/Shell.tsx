@@ -6,6 +6,7 @@ import { Avatar } from "./Avatar";
 import { I } from "./Icons";
 import { useI18n } from "./I18n";
 import Settings from "./Settings";
+import { TabBar } from "./TabBar";
 import type { User } from "@/lib/client";
 
 type Props = {
@@ -56,12 +57,12 @@ export function Shell({ me, active, search, onNew, children }: Props) {
       {children}
 
       <div className="tabbar-wrap">
-        <nav className="tabbar glass">
-          <Link href="/" aria-current={cur("tasks")}><I name="grid" />{t("nav.tasks")}</Link>
-          <Link href="/brands" aria-current={cur("brands")}><I name="tag" />{t("nav.brands")}</Link>
-          {me.role === "MANAGER" && <Link href="/team" aria-current={cur("team")}><I name="people" />{t("nav.team")}</Link>}
-          <button type="button" onClick={() => setSettings(true)}><I name="gear" />{t("nav.settings")}</button>
-        </nav>
+        <TabBar selected={settings ? "settings" : active} items={[
+          { k: "tasks", href: "/", icon: "grid", label: t("nav.tasks") },
+          { k: "brands", href: "/brands", icon: "tag", label: t("nav.brands") },
+          ...(me.role === "MANAGER" ? [{ k: "team", href: "/team", icon: "people" as const, label: t("nav.team") }] : []),
+          { k: "settings", icon: "gear", label: t("nav.settings"), onClick: () => setSettings(true) },
+        ]} />
         {onNew && <button type="button" className="fab" onClick={onNew} aria-label={t("nav.new")}><I name="plus" /></button>}
       </div>
 
