@@ -11,8 +11,8 @@ import { forVision } from "./vision";
 const BETAS: Anthropic.Beta.AnthropicBeta[] = ["server-side-fallback-2026-07-01"];
 
 function explain(err: unknown): never {
-  if (err instanceof Anthropic.AuthenticationError) throw new Error("مفتاح Claude API مش صحيح — راجعه في الإعدادات");
-  if (err instanceof Anthropic.RateLimitError) throw new Error("فيه ضغط على Claude دلوقتي، جرّب كمان دقيقة");
+  if (err instanceof Anthropic.AuthenticationError) throw new Error("Invalid Claude API key — check it in Settings");
+  if (err instanceof Anthropic.RateLimitError) throw new Error("Claude is busy right now, try again in a minute");
   if (err instanceof Anthropic.APIError) throw new Error(`Claude: ${err.message}`);
   throw err;
 }
@@ -33,7 +33,7 @@ export async function extractBrandBook(brandId: string, fileIds: string[], extra
       content.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: await forVision(buf) } });
     }
   }
-  if (!content.length && !extra.trim()) throw new Error("ارفع ملف جايدلاين (PDF أو صور) أو اكتب وصف للبراند");
+  if (!content.length && !extra.trim()) throw new Error("Upload a guideline file (PDF or images) or describe the brand");
   content.push({
     type: "text",
     text: `Build the brand book for "${brand.name}" from the material above${extra.trim() ? " and these notes from the user:\n" + extra.trim() : ""}.
@@ -41,7 +41,7 @@ export async function extractBrandBook(brandId: string, fileIds: string[], extra
 Current brand book (keep what is already filled unless the material clearly says otherwise):
 ${JSON.stringify(parseBook(brand.book))}
 
-Be specific and practical — these rules will steer an AI designer making ads. Colors: exact HEX values with a role. Leave a field empty rather than inventing facts; for style fields you may infer from the visuals. Write dos/donts one rule per line. Write the fields in the language the material uses (Arabic or English).`,
+Be specific and practical — these rules will steer an AI designer making ads. Colors: exact HEX values with a role. Leave a field empty rather than inventing facts; for style fields you may infer from the visuals. Write dos/donts one rule per line. Write the fields in English, but keep brand names, slogans and sample copy in their original language.`,
   });
 
   try {
@@ -53,7 +53,7 @@ Be specific and practical — these rules will steer an AI designer making ads. 
       output_config: { effort: "medium", format: betaZodOutputFormat(BrandBookSchema) },
       messages: [{ role: "user", content }],
     });
-    if (res.stop_reason === "refusal" || !res.parsed_output) throw new Error("مقدرتش أقرا الملفات، جرّب ملف تاني");
+    if (res.stop_reason === "refusal" || !res.parsed_output) throw new Error("Couldn't read the files, try another one");
     return parseBook(JSON.stringify(res.parsed_output));
   } catch (e) { explain(e); }
 }
@@ -61,7 +61,7 @@ Be specific and practical — these rules will steer an AI designer making ads. 
 export const CheckSchema = z.object({
   score: z.number().describe("0-100: how well the design follows the brand book and works as an ad"),
   verdict: z.enum(["approved", "needs_changes", "off_brand"]),
-  summary: z.string().describe("One or two sentences, in the user's language (Arabic if the brand copy is Arabic)"),
+  summary: z.string().describe("One or two sentences, in English"),
   checks: z.array(z.object({
     area: z.string().describe("e.g. Colors, Typography, Logo, Tone of voice, Imagery, Layout & hierarchy, CTA, Legibility, Placement safe zones"),
     pass: z.boolean(),
@@ -100,7 +100,7 @@ export async function checkDesign(designId: string, png: Buffer): Promise<Check>
         ],
       }],
     });
-    if (res.stop_reason === "refusal" || !res.parsed_output) throw new Error("مقدرتش أراجع التصميم ده");
+    if (res.stop_reason === "refusal" || !res.parsed_output) throw new Error("Couldn't review this design");
     const out = res.parsed_output;
     return { ...out, score: Math.max(0, Math.min(100, Math.round(out.score))) };
   } catch (e) { explain(e); }

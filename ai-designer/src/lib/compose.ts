@@ -18,8 +18,8 @@ export type ComposeInput = {
 };
 export type BrandFonts = { heading: string; body: string };
 
-const FALLBACK = `"IBM Plex Sans Arabic", "Inter", system-ui, sans-serif`;
-const AR = /[؀-ۿ]/;
+const FALLBACK = `"Inter", "IBM Plex Sans Arabic", system-ui, sans-serif`;
+const AR = /[\u0600-\u06FF]/;
 
 export const sizeOf = (format: string) => FORMATS[(format in FORMATS ? format : "1:1") as Format];
 
@@ -147,7 +147,7 @@ export function compose(canvas: HTMLCanvasElement, d: ComposeInput) {
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, visualH);
     ctx.fillStyle = "rgba(255,255,255,0.12)";
     ctx.font = `600 ${W * 0.03}px ${FALLBACK}`; ctx.textAlign = "center"; ctx.direction = "rtl";
-    ctx.fillText("الصورة لسه ما اتولدتش", W / 2, visualH * 0.42);
+    ctx.fillText("Image not generated yet", W / 2, visualH * 0.42);
   }
 
   // Overlay for legibility

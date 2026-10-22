@@ -21,7 +21,7 @@ export const POST = route(async () => {
     const text = res.content.filter((b) => b.type === "text").map((b) => (b as Anthropic.Beta.BetaTextBlock).text).join(" ").trim();
     return json({ claude: true, mcp: servers.length ? true : null, tools: servers.length ? text : "" });
   } catch (e) {
-    if (e instanceof Anthropic.AuthenticationError) return json({ claude: false, error: "مفتاح Claude API مش صحيح" });
+    if (e instanceof Anthropic.AuthenticationError) return json({ claude: false, error: "Invalid Claude API key" });
     if (e instanceof Anthropic.APIError) return json({ claude: !servers.length ? false : null, mcp: servers.length ? false : null, error: e.message });
     return json({ claude: false, error: (e as Error).message });
   }

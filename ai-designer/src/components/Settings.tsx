@@ -19,7 +19,7 @@ export default function Settings({ brands, auth }: { brands: BrandDTO[]; auth: b
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    try { load(await api<View>("/api/settings", { method: "PUT", json: form })); setMsg("اتحفظ ✓"); setTest(null); }
+    try { load(await api<View>("/api/settings", { method: "PUT", json: form })); setMsg("Saved ✓"); setTest(null); }
     catch (err) { setMsg((err as Error).message); }
     setTimeout(() => setMsg(""), 2500);
   }
@@ -29,52 +29,52 @@ export default function Settings({ brands, auth }: { brands: BrandDTO[]; auth: b
     setTesting(false);
   }
 
-  const env = (k: string) => v?.fromEnv[k] ? <small className="muted">متحدد من متغيرات السيرفر</small> : null;
+  const env = (k: string) => v?.fromEnv[k] ? <small className="muted">Set by a server environment variable</small> : null;
   const dot = (ok: boolean | null | undefined) => <span className={`status-dot ${ok ? "on" : ok === false ? "off" : ""}`} />;
 
   return (
     <>
       <TopBar brands={brands} />
       <main className="narrow">
-        <h1 style={{ margin: 0 }}>الإعدادات</h1>
+        <h1 style={{ margin: 0 }}>Settings</h1>
 
         <form className="card book-section" onSubmit={save}>
-          <h3><I name="spark" />Claude (المخ: الأفكار، الكوبي، الإخراج الفني)</h3>
+          <h3><I name="spark" />Claude (the brain: ideas, copy, art direction)</h3>
           <label className="field">
             <span>Claude API Key</span>
             <input className="input mono" value={form.anthropicKey} onChange={(e) => setForm({ ...form, anthropicKey: e.target.value })} placeholder="sk-ant-…" disabled={v?.fromEnv.anthropicKey} autoComplete="off" />
-            {env("anthropicKey")}<small>من console.anthropic.com ← API Keys.</small>
+            {env("anthropicKey")}<small>From console.anthropic.com → API Keys.</small>
           </label>
 
-          <h3 style={{ marginTop: 8 }}><I name="image" />Higgsfield MCP (توليد الصور)</h3>
+          <h3 style={{ marginTop: 8 }}><I name="image" />Higgsfield MCP (image generation)</h3>
           <label className="field">
-            <span>رابط الـ MCP Server</span>
+            <span>MCP server URL</span>
             <input className="input mono" value={form.mcpUrl} onChange={(e) => setForm({ ...form, mcpUrl: e.target.value })} placeholder="https://…/mcp" disabled={v?.fromEnv.mcpUrl} />
-            {env("mcpUrl")}<small>رابط Higgsfield MCP زي ما هو في حسابك على Higgsfield (Remote MCP / Streamable HTTP).</small>
+            {env("mcpUrl")}<small>Your Higgsfield MCP URL, as shown in your Higgsfield account (Remote MCP / Streamable HTTP).</small>
           </label>
           <label className="field">
             <span>Access Token</span>
-            <input className="input mono" value={form.mcpToken} onChange={(e) => setForm({ ...form, mcpToken: e.target.value })} placeholder="التوكن أو الـ API key" disabled={v?.fromEnv.mcpToken} autoComplete="off" />
-            {env("mcpToken")}<small>بيتبعت كـ Bearer token للسيرفر. سيبه فاضي لو الرابط نفسه فيه المفتاح.</small>
+            <input className="input mono" value={form.mcpToken} onChange={(e) => setForm({ ...form, mcpToken: e.target.value })} placeholder="Token or API key" disabled={v?.fromEnv.mcpToken} autoComplete="off" />
+            {env("mcpToken")}<small>Sent to the server as a Bearer token. Leave empty if the URL already contains the key.</small>
           </label>
 
-          <h3 style={{ marginTop: 8 }}><I name="out" />رابط التطبيق</h3>
+          <h3 style={{ marginTop: 8 }}><I name="out" />App URL</h3>
           <label className="field">
             <span>APP_URL</span>
             <input className="input mono" value={form.appUrl} onChange={(e) => setForm({ ...form, appUrl: e.target.value })} placeholder="https://designer.example.com" disabled={v?.fromEnv.appUrl} />
-            {env("appUrl")}<small>لما يكون متحدد، Higgsfield يقدر يستخدم اللوجو وصور المنتجات والمراجع كـ reference وهو بيولّد.</small>
+            {env("appUrl")}<small>When set, Higgsfield can use your logo, product photos and references while generating.</small>
           </label>
 
           <div className="row">
-            <button className="btn primary">حفظ</button>
-            <button type="button" className="btn" onClick={runTest} disabled={testing}>{testing ? "بيجرّب…" : "جرّب الاتصال"}</button>
+            <button className="btn primary">Save</button>
+            <button type="button" className="btn" onClick={runTest} disabled={testing}>{testing ? "Testing…" : "Test connection"}</button>
             <span className="muted">{msg}</span>
           </div>
 
           {test && (
             <div className="check-box">
-              <div className="row">{dot(test.claude)} Claude {test.claude ? "شغال" : test.claude === false ? "مش شغال" : ""}</div>
-              <div className="row">{dot(test.mcp)} Higgsfield MCP {test.mcp ? "متوصل" : test.mcp === false ? "مش متوصل" : "مش متحدد"}</div>
+              <div className="row">{dot(test.claude)} Claude {test.claude ? "working" : test.claude === false ? "not working" : ""}</div>
+              <div className="row">{dot(test.mcp)} Higgsfield MCP {test.mcp ? "connected" : test.mcp === false ? "not connected" : "not set"}</div>
               {test.tools && <div className="muted mono" style={{ fontSize: 12.5 }}>{test.tools}</div>}
               {test.error && <div className="error-note">{test.error}</div>}
             </div>
@@ -83,8 +83,8 @@ export default function Settings({ brands, auth }: { brands: BrandDTO[]; auth: b
 
         {auth && (
           <div className="card book-section">
-            <h3><I name="out" />الخروج</h3>
-            <div><button type="button" className="btn" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); location.href = "/login"; }}>تسجيل الخروج</button></div>
+            <h3><I name="out" />Sign out</h3>
+            <div><button type="button" className="btn" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); location.href = "/login"; }}>Sign out</button></div>
           </div>
         )}
       </main>

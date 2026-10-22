@@ -12,13 +12,13 @@ const running = new Set<string>();
 export const POST = route<Params>(async (req, { params }) => {
   const { id } = await params;
   const chat = await prisma.chat.findUnique({ where: { id } });
-  if (!chat) return fail("المحادثة مش موجودة", 404);
-  if (running.has(id)) return fail("المصمم لسه شغال على الطلب اللي قبله", 409);
+  if (!chat) return fail("Chat not found", 404);
+  if (running.has(id)) return fail("The designer is still working on the previous request", 409);
   const b = await req.json().catch(() => ({}));
   const text = typeof b.text === "string" ? b.text.trim().slice(0, 20000) : "";
   const fileIds: string[] = Array.isArray(b.fileIds) ? b.fileIds.filter((x: unknown) => typeof x === "string").slice(0, 10) : [];
   const files = await prisma.brandFile.findMany({ where: { id: { in: fileIds }, brandId: chat.brandId, mime: { startsWith: "image/" } } });
-  if (!text && !files.length) return fail("اكتب طلبك");
+  if (!text && !files.length) return fail("Write your request");
 
   // Images first, then text. Attachment URLs are listed so the designer can hand them to Higgsfield as references.
   const { appUrl } = await getConfig();
@@ -28,7 +28,7 @@ export const POST = route<Params>(async (req, { params }) => {
     { type: "text" as const, text: (text || "(see attached images)") + (links.length ? `\n\n[Attached image URLs, usable as generation references]\n${links.join("\n")}` : "") },
   ];
   await appendMessage(id, "user", content as never);
-  if (!chat.title) await prisma.chat.update({ where: { id }, data: { title: (text || "صور مرفقة").replace(/\s+/g, " ").slice(0, 60) } });
+  if (!chat.title) await prisma.chat.update({ where: { id }, data: { title: (text || "Attached images").replace(/\s+/g, " ").slice(0, 60) } });
 
   const enc = new TextEncoder();
   running.add(id);
@@ -37,7 +37,7 @@ export const POST = route<Params>(async (req, { params }) => {
       let open = true;
       const emit = (e: DesignerEvent) => { if (!open) return; try { ctrl.enqueue(enc.encode(JSON.stringify(e) + "\n")); } catch { open = false; } };
       try { await runTurn(id, emit); }
-      catch (err) { console.error(err); emit({ t: "error", message: err instanceof Error ? err.message : "حصلت مشكلة" }); emit({ t: "done" }); }
+      catch (err) { console.error(err); emit({ t: "error", message: err instanceof Error ? err.message : "Something went wrong" }); emit({ t: "done" }); }
       finally { running.delete(id); if (open) try { ctrl.close(); } catch {} }
     },
   });

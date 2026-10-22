@@ -13,18 +13,18 @@ export const GET = route<Params>(async (_r, { params }) => {
 // multipart: kind, file (repeatable)
 export const POST = route<Params>(async (req, { params }) => {
   const { id: brandId } = await params;
-  if (!(await prisma.brand.findUnique({ where: { id: brandId }, select: { id: true } }))) return fail("البراند مش موجود", 404);
+  if (!(await prisma.brand.findUnique({ where: { id: brandId }, select: { id: true } }))) return fail("Brand not found", 404);
   const form = await req.formData();
   const kind = String(form.get("kind"));
-  if (!KINDS.includes(kind)) return fail("نوع الملف مش معروف");
+  if (!KINDS.includes(kind)) return fail("Unknown file type");
   const files = form.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
-  if (!files.length) return fail("اختار ملف");
+  if (!files.length) return fail("Choose a file");
   const big = files.find((f) => f.size > MAX_UPLOAD);
-  if (big) return fail(`${big.name} أكبر من 40MB`);
+  if (big) return fail(`${big.name} is larger than 40MB`);
   const out = [];
   for (const file of files) {
     const mime = file.type || mimeFromName(file.name);
-    if ((kind === "attachment" || kind === "reference" || kind === "product") && !mime.startsWith("image/")) return fail(`${file.name}: لازم يكون صورة`);
+    if ((kind === "attachment" || kind === "reference" || kind === "product") && !mime.startsWith("image/")) return fail(`${file.name}: must be an image`);
     const storageKey = await saveUpload(file);
     out.push(fileDTO(await prisma.brandFile.create({ data: { brandId, kind, name: file.name.slice(0, 200), storageKey, mime, size: file.size } })));
   }

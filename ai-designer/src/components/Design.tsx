@@ -41,7 +41,7 @@ export function DesignCard({ design, onOpen }: { design: DesignDTO; onOpen: () =
           <span>{design.format}</span>{design.placement && <><span>·</span><span>{design.placement}</span></>}
           {design.favorite && <I name="star" />}
           {design.check && <span className={`score ${scoreCls(design.check.score)}`}>{design.check.score}</span>}
-          {!design.image && <span className="badge">من غير صورة</span>}
+          {!design.image && <span className="badge">No image</span>}
         </div>
       </div>
     </button>
@@ -110,7 +110,7 @@ export function DesignEditor({ design, onClose, onChange, onRemove, onRevise }: 
   async function attach(list: FileList | null) {
     if (!list?.[0]) return;
     const fd = new FormData(); fd.set("file", list[0]);
-    try { const out = await api<DesignDTO>(`/api/designs/${d.id}/image`, { method: "POST", body: fd }); set({ image: out.image }); onChange({ ...out, ...pickBack(d) }); say("اتحطت الصورة"); }
+    try { const out = await api<DesignDTO>(`/api/designs/${d.id}/image`, { method: "POST", body: fd }); set({ image: out.image }); onChange({ ...out, ...pickBack(d) }); say("Image updated"); }
     catch (e) { say((e as Error).message); }
   }
   const pickBack = (x: DesignDTO) => ({ headline: x.headline, subheadline: x.subheadline, cta: x.cta, layout: x.layout, format: x.format });
@@ -120,7 +120,7 @@ export function DesignEditor({ design, onClose, onChange, onRemove, onRevise }: 
     set({ favorite: out.favorite }); onChange({ ...design, favorite: out.favorite });
   }
   async function remove() {
-    if (!confirm("تشيل التصميم ده من المكتبة؟")) return;
+    if (!confirm("Remove this design from the library?")) return;
     await api(`/api/designs/${d.id}`, { method: "DELETE" });
     onRemove(d.id); onClose();
   }
@@ -128,8 +128,8 @@ export function DesignEditor({ design, onClose, onChange, onRemove, onRevise }: 
   const palette = brand.book.colors;
   const textChoices = [...palette.map((c) => c.hex), "#FFFFFF", "#111111"].filter((v, i, a) => a.indexOf(v) === i);
   const accentChoices = palette.length ? palette.map((c) => c.hex) : [d.layout.accentColor];
-  const LAYOUT_LABEL: Record<string, string> = { bottom: "تحت", top: "فوق", center: "في النص", split: "تقسيم", minimal: "بسيط", clean: "صورة بس" };
-  const LOGO_LABEL: Record<string, string> = { "top-right": "فوق يمين", "top-left": "فوق شمال", "bottom-right": "تحت يمين", "bottom-left": "تحت شمال", none: "من غير" };
+  const LAYOUT_LABEL: Record<string, string> = { bottom: "Bottom", top: "Top", center: "Center", split: "Split", minimal: "Minimal", clean: "Image only" };
+  const LOGO_LABEL: Record<string, string> = { "top-right": "Top right", "top-left": "Top left", "bottom-right": "Bottom right", "bottom-left": "Bottom left", none: "None" };
 
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && close()}>
@@ -137,58 +137,58 @@ export function DesignEditor({ design, onClose, onChange, onRemove, onRevise }: 
         <div className="stage"><canvas ref={ref} /></div>
         <div className="side">
           <div className="row">
-            <input className="input" value={d.title} onChange={(e) => set({ title: e.target.value })} style={{ fontWeight: 700 }} aria-label="اسم التصميم" />
-            <button type="button" className="btn icon ghost" onClick={fav} aria-label="مفضلة" style={{ color: d.favorite ? "var(--warn)" : undefined }}><I name="star" /></button>
-            <button type="button" className="btn icon ghost" onClick={close} aria-label="قفل"><I name="x" /></button>
+            <input className="input" value={d.title} onChange={(e) => set({ title: e.target.value })} style={{ fontWeight: 700 }} aria-label="Design name" />
+            <button type="button" className="btn icon ghost" onClick={fav} aria-label="Favorite" style={{ color: d.favorite ? "var(--warn)" : undefined }}><I name="star" /></button>
+            <button type="button" className="btn icon ghost" onClick={close} aria-label="Close"><I name="x" /></button>
           </div>
 
           <div className="row" style={{ flexWrap: "wrap" }}>
-            <button type="button" className="btn primary" onClick={download}><I name="download" />تحميل PNG</button>
-            <button type="button" className="btn" onClick={check} disabled={checking}><I name="shield" />{checking ? "بيراجع…" : "مراجعة البراند"}</button>
-            {onRevise && <button type="button" className="btn" onClick={async () => { await save(); onRevise(d); onClose(); }}><I name="wand" />اطلب تعديل</button>}
+            <button type="button" className="btn primary" onClick={download}><I name="download" />Download PNG</button>
+            <button type="button" className="btn" onClick={check} disabled={checking}><I name="shield" />{checking ? "Reviewing…" : "Brand check"}</button>
+            {onRevise && <button type="button" className="btn" onClick={async () => { await save(); onRevise(d); onClose(); }}><I name="wand" />Request changes</button>}
           </div>
 
           {d.check && (
             <div className="check-box">
-              <div className="row"><span className={`score ${scoreCls(d.check.score)}`} style={{ fontSize: 15 }}>{d.check.score}/100</span><b className="grow">{d.check.verdict === "approved" ? "مطابق للبراند" : d.check.verdict === "needs_changes" ? "محتاج تعديلات" : "خارج الهوية"}</b></div>
+              <div className="row"><span className={`score ${scoreCls(d.check.score)}`} style={{ fontSize: 15 }}>{d.check.score}/100</span><b className="grow">{d.check.verdict === "approved" ? "On brand" : d.check.verdict === "needs_changes" ? "Needs changes" : "Off brand"}</b></div>
               <div style={{ fontSize: 14 }}>{d.check.summary}</div>
               {d.check.checks.map((c, i) => (
                 <div key={i} className="check-item"><span className={c.pass ? "ok" : "no"}>{c.pass ? "✓" : "✕"}</span><span><b>{c.area}:</b> {c.note}</span></div>
               ))}
-              {d.check.fixes.length > 0 && <details className="details"><summary>التعديلات المقترحة</summary><ol style={{ margin: "6px 0 0", paddingInlineStart: 18 }}>{d.check.fixes.map((f, i) => <li key={i}>{f}</li>)}</ol></details>}
+              {d.check.fixes.length > 0 && <details className="details"><summary>Suggested fixes</summary><ol style={{ margin: "6px 0 0", paddingInlineStart: 18 }}>{d.check.fixes.map((f, i) => <li key={i}>{f}</li>)}</ol></details>}
             </div>
           )}
 
-          <div className="section-t">النص</div>
-          <label className="field"><span>العنوان</span><textarea className="textarea" rows={2} style={{ minHeight: 60 }} value={d.headline} onChange={(e) => set({ headline: e.target.value })} /></label>
-          <label className="field"><span>العنوان الفرعي</span><textarea className="textarea" rows={2} style={{ minHeight: 56 }} value={d.subheadline} onChange={(e) => set({ subheadline: e.target.value })} /></label>
-          <label className="field"><span>زرار الـ CTA</span><input className="input" value={d.cta} onChange={(e) => set({ cta: e.target.value })} /></label>
+          <div className="section-t">Copy</div>
+          <label className="field"><span>Headline</span><textarea className="textarea" rows={2} style={{ minHeight: 60 }} value={d.headline} onChange={(e) => set({ headline: e.target.value })} /></label>
+          <label className="field"><span>Subheadline</span><textarea className="textarea" rows={2} style={{ minHeight: 56 }} value={d.subheadline} onChange={(e) => set({ subheadline: e.target.value })} /></label>
+          <label className="field"><span>CTA button</span><input className="input" value={d.cta} onChange={(e) => set({ cta: e.target.value })} /></label>
 
-          <div className="section-t">الشكل</div>
-          <div className="field"><span>المقاس</span><div className="seg">{Object.entries(FORMATS).map(([k, v]) => <button key={k} type="button" className="chip" aria-pressed={d.format === k} onClick={() => set({ format: k })} title={v.label}>{k}</button>)}</div></div>
-          <div className="field"><span>مكان النص</span><div className="seg">{LAYOUTS.map((k) => <button key={k} type="button" className="chip" aria-pressed={d.layout.preset === k} onClick={() => setL({ preset: k })}>{LAYOUT_LABEL[k]}</button>)}</div></div>
-          <div className="field"><span>لون العنوان</span><div className="swatches">{textChoices.map((c) => <button key={c} type="button" className="swatch" style={{ background: c }} aria-pressed={d.layout.textColor.toUpperCase() === c.toUpperCase()} onClick={() => setL({ textColor: c })} aria-label={c} />)}</div></div>
-          <div className="field"><span>لون الزرار</span><div className="swatches">{accentChoices.map((c) => <button key={c} type="button" className="swatch" style={{ background: c }} aria-pressed={d.layout.accentColor.toUpperCase() === c.toUpperCase()} onClick={() => setL({ accentColor: c })} aria-label={c} />)}</div>{!palette.length && <small>ضيف ألوان البراند في البراند بوك عشان تختار منها.</small>}</div>
-          <div className="field"><span>اللوجو</span><div className="seg">{LOGO_POSITIONS.map((k) => <button key={k} type="button" className="chip" aria-pressed={d.layout.logoPosition === k} onClick={() => setL({ logoPosition: k })}>{LOGO_LABEL[k]}</button>)}</div></div>
+          <div className="section-t">Design</div>
+          <div className="field"><span>Size</span><div className="seg">{Object.entries(FORMATS).map(([k, v]) => <button key={k} type="button" className="chip" aria-pressed={d.format === k} onClick={() => set({ format: k })} title={v.label}>{k}</button>)}</div></div>
+          <div className="field"><span>Text position</span><div className="seg">{LAYOUTS.map((k) => <button key={k} type="button" className="chip" aria-pressed={d.layout.preset === k} onClick={() => setL({ preset: k })}>{LAYOUT_LABEL[k]}</button>)}</div></div>
+          <div className="field"><span>Headline color</span><div className="swatches">{textChoices.map((c) => <button key={c} type="button" className="swatch" style={{ background: c }} aria-pressed={d.layout.textColor.toUpperCase() === c.toUpperCase()} onClick={() => setL({ textColor: c })} aria-label={c} />)}</div></div>
+          <div className="field"><span>Button color</span><div className="swatches">{accentChoices.map((c) => <button key={c} type="button" className="swatch" style={{ background: c }} aria-pressed={d.layout.accentColor.toUpperCase() === c.toUpperCase()} onClick={() => setL({ accentColor: c })} aria-label={c} />)}</div>{!palette.length && <small>Add brand colors in the brand book to choose from them.</small>}</div>
+          <div className="field"><span>Logo</span><div className="seg">{LOGO_POSITIONS.map((k) => <button key={k} type="button" className="chip" aria-pressed={d.layout.logoPosition === k} onClick={() => setL({ logoPosition: k })}>{LOGO_LABEL[k]}</button>)}</div></div>
 
-          <div className="section-t">الصورة</div>
+          <div className="section-t">Image</div>
           <div className="row" style={{ flexWrap: "wrap" }}>
-            <label className="btn sm"><I name="upload" />{d.image ? "غيّر الصورة" : "ارفع الصورة"}<input type="file" hidden accept="image/png,image/jpeg,image/webp" onChange={(e) => { attach(e.target.files); e.target.value = ""; }} /></label>
-            <button type="button" className="btn sm" onClick={async () => say((await copyText(d.imagePrompt)) ? "البرومبت اتنسخ" : "مقدرتش أنسخ")}><I name="copy" />نسخ البرومبت</button>
-            {d.sourceUrl && <a className="btn sm ghost" href={d.sourceUrl} target="_blank" rel="noreferrer">الأصل</a>}
+            <label className="btn sm"><I name="upload" />{d.image ? "Replace image" : "Upload image"}<input type="file" hidden accept="image/png,image/jpeg,image/webp" onChange={(e) => { attach(e.target.files); e.target.value = ""; }} /></label>
+            <button type="button" className="btn sm" onClick={async () => say((await copyText(d.imagePrompt)) ? "Prompt copied" : "Couldn't copy")}><I name="copy" />Copy prompt</button>
+            {d.sourceUrl && <a className="btn sm ghost" href={d.sourceUrl} target="_blank" rel="noreferrer">Original</a>}
           </div>
-          <details className="details"><summary>برومبت الصورة</summary><p className="mono" style={{ whiteSpace: "pre-wrap", fontSize: 12.5, direction: "ltr", textAlign: "left" }}>{d.imagePrompt}</p></details>
+          <details className="details"><summary>Image prompt</summary><p className="mono" style={{ whiteSpace: "pre-wrap", fontSize: 12.5, direction: "ltr", textAlign: "left" }}>{d.imagePrompt}</p></details>
 
-          <div className="section-t">البوست</div>
-          <label className="field"><span>الكابشن</span><textarea className="textarea" rows={5} value={d.caption} onChange={(e) => set({ caption: e.target.value })} /></label>
-          <label className="field"><span>هاشتاجات</span><input className="input" value={d.hashtags} onChange={(e) => set({ hashtags: e.target.value })} /></label>
-          <button type="button" className="btn sm" onClick={async () => say((await copyText([d.caption, d.hashtags].filter(Boolean).join("\n\n"))) ? "الكابشن اتنسخ" : "مقدرتش أنسخ")}><I name="copy" />نسخ الكابشن</button>
-          {d.rationale && <details className="details"><summary>ليه التصميم ده؟</summary><p style={{ whiteSpace: "pre-wrap" }}>{d.rationale}</p></details>}
+          <div className="section-t">Post</div>
+          <label className="field"><span>Caption</span><textarea className="textarea" rows={5} value={d.caption} onChange={(e) => set({ caption: e.target.value })} /></label>
+          <label className="field"><span>Hashtags</span><input className="input" value={d.hashtags} onChange={(e) => set({ hashtags: e.target.value })} /></label>
+          <button type="button" className="btn sm" onClick={async () => say((await copyText([d.caption, d.hashtags].filter(Boolean).join("\n\n"))) ? "Caption copied" : "Couldn't copy")}><I name="copy" />Copy caption</button>
+          {d.rationale && <details className="details"><summary>Why this design?</summary><p style={{ whiteSpace: "pre-wrap" }}>{d.rationale}</p></details>}
 
           <div className="row" style={{ marginTop: "auto", paddingTop: 8 }}>
-            <button type="button" className="btn danger ghost" onClick={remove}><I name="trash" />شيل</button>
+            <button type="button" className="btn danger ghost" onClick={remove}><I name="trash" />Remove</button>
             <span className="grow" />
-            {dirty && <button type="button" className="btn primary" onClick={save} disabled={saving}>{saving ? "بيحفظ…" : "حفظ"}</button>}
+            {dirty && <button type="button" className="btn primary" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</button>}
           </div>
         </div>
       </div>

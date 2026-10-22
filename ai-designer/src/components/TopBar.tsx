@@ -13,15 +13,15 @@ export function TopBar({ current, brands: initial }: { current?: string; brands?
   return (
     <header className="topbar">
       <Link href="/" className="logo"><span className="logo-mark" /><span>Studio AI</span></Link>
-      <nav className="brand-tabs" aria-label="البراندات">
+      <nav className="brand-tabs" aria-label="Brands">
         {brands.map((b) => (
           <Link key={b.id} href={`/brands/${b.id}`} className="brand-tab" aria-current={b.id === current ? "page" : undefined} style={{ ["--bc" as string]: b.color }}>
             <BrandMark brand={b} size={24} />{b.name}
           </Link>
         ))}
-        <Link href="/?new=1" className="brand-tab" title="براند جديد"><I name="plus" /></Link>
+        <Link href="/?new=1" className="brand-tab" title="New brand"><I name="plus" /></Link>
       </nav>
-      <Link href="/settings" className="btn ghost icon" aria-label="الإعدادات"><I name="gear" /></Link>
+      <Link href="/settings" className="btn ghost icon" aria-label="Settings"><I name="gear" /></Link>
     </header>
   );
 }

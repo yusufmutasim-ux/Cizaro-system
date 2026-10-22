@@ -11,20 +11,20 @@ type Live = { text: string; tools: { name: string; live: boolean; error?: boolea
 type Pending = { id: string; url: string; name: string };
 
 const QUICK = [
-  { label: "إعلان سوشيال", text: "اعملي إعلان سوشيال ميديا (فيد 4:5) عن: " },
-  { label: "كامبين كاملة", text: "عايز كامبين كاملة.\nالمنتج/الخدمة: \nالهدف: \nالمدة: \nالميزانية التقريبية: \nالمنصات: " },
-  { label: "ستوري / ريلز", text: "اعملي ستوري 9:16 عن: " },
-  { label: "بوست منتج", text: "اعملي بوست للمنتج ده (الصورة مرفقة) يبرز: " },
-  { label: "3 أفكار A/B", text: "اديني 3 إعلانات بزوايا مختلفة نختبرها A/B عن: " },
-  { label: "عرض / خصم", text: "اعملي إعلان عرض: خصم ___% على ___ لحد ___" },
-  { label: "كي فيجوال", text: "اعملي كي فيجوال للموسم/المناسبة: " },
+  { label: "Social ad", text: "Make a social media ad (4:5 feed) for: " },
+  { label: "Full campaign", text: "I want a full campaign.\nProduct/service: \nGoal: \nDuration: \nApprox. budget: \nPlatforms: " },
+  { label: "Story / Reel", text: "Make a 9:16 story for: " },
+  { label: "Product post", text: "Make a post for this product (photo attached) highlighting: " },
+  { label: "3 A/B angles", text: "Give me 3 ads with different angles to A/B test for: " },
+  { label: "Offer / sale", text: "Make an offer ad: ___% off ___ until ___" },
+  { label: "Key visual", text: "Make a key visual for the season/occasion: " },
 ];
 
 const STARTERS = [
-  { t: "كامبين إطلاق", d: "خطة كاملة + مجموعة إعلانات لكل المنصات", p: "عايز كامبين إطلاق لمنتج جديد. اسألني اللي محتاجه وبعدين اعملي الخطة والإعلانات." },
-  { t: "إعلان أوفر", d: "إعلان تحويل بعرض واضح و CTA قوي", p: "اعملي إعلان أوفر لفيسبوك وإنستجرام (فيد + ستوري) عن: " },
-  { t: "محتوى الشهر", d: "أفكار بوستات متناسقة للبراند", p: "اقترحلي 6 بوستات للشهر ده متناسقة مع البراند، ونفّذ أول 3." },
-  { t: "صورة منتج", d: "لايف ستايل احترافي لمنتجك", p: "ارفعتلك صورة المنتج. اعملي صور لايف ستايل احترافية ليه في 3 مشاهد مختلفة." },
+  { t: "Launch campaign", d: "Full plan + an ad set for every platform", p: "I want a launch campaign for a new product. Ask me what you need, then build the plan and the ads." },
+  { t: "Offer ad", d: "A conversion ad with a clear offer and strong CTA", p: "Make an offer ad for Facebook and Instagram (feed + story) for: " },
+  { t: "This month's content", d: "A consistent set of post ideas", p: "Suggest 6 on-brand posts for this month and produce the first 3." },
+  { t: "Product shots", d: "Professional lifestyle shots of your product", p: "I've attached the product photo. Make professional lifestyle shots of it in 3 different scenes." },
 ];
 
 function Prose({ text }: { text: string }) {
@@ -42,7 +42,7 @@ function Prose({ text }: { text: string }) {
   );
 }
 
-const toolLabel = (n: string) => (/status|result|get|poll|check|job/i.test(n) ? "بيتابع التوليد" : /video/i.test(n) ? "بيولّد فيديو" : /present_designs/.test(n) ? "بيجهّز التصاميم" : /image|generat|create|soul|seedream|flux|nano/i.test(n) ? "بيولّد الصورة" : n);
+const toolLabel = (n: string) => (/status|result|get|poll|check|job/i.test(n) ? "Checking generation" : /video/i.test(n) ? "Generating video" : /present_designs/.test(n) ? "Preparing designs" : /image|generat|create|soul|seedream|flux|nano/i.test(n) ? "Generating image" : n);
 
 export default function Studio() {
   const { brand, ready, say, files } = useBrand();
@@ -72,7 +72,7 @@ export default function Studio() {
   useEffect(() => { if (chatId && !busy) loadChat(chatId).catch(() => setView([])); else if (!chatId) setView([]); }, [chatId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const id = sp.get("revise"), title = sp.get("rt");
-    if (id) { setText(`عدّل التصميم «${title ?? ""}» (id: ${id}): `); setTimeout(() => input.current?.focus(), 50); }
+    if (id) { setText(`Revise the design "${title ?? ""}" (id: ${id}): `); setTimeout(() => input.current?.focus(), 50); }
   }, [sp]);
   useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight }); }, [view, live?.text, live?.tools.length, live?.designIds.length]);
 
@@ -97,7 +97,7 @@ export default function Studio() {
     const body = msg.trim();
     if ((!body && !pending.length) || busy) return;
     setLive(null);
-    if (!ready.claude) { say("ضيف مفتاح Claude API من الإعدادات الأول"); return; }
+    if (!ready.claude) { say("Add your Claude API key in Settings first"); return; }
     let id = chatId;
     if (!id) {
       const c = await api<ChatSummary>(`/api/brands/${brand.id}/chats`, { method: "POST" });
@@ -113,7 +113,7 @@ export default function Studio() {
 
     try {
       const res = await fetch(`/api/chats/${id}/messages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: body, fileIds: atts.map((a) => a.id) }) });
-      if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).error || `خطأ ${res.status}`);
+      if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).error || `Error ${res.status}`);
       const reader = res.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
@@ -150,7 +150,7 @@ export default function Studio() {
   }
 
   async function removeChat(id: string) {
-    if (!confirm("تمسح المحادثة دي؟ التصاميم هتفضل في المكتبة.")) return;
+    if (!confirm("Delete this chat? Its designs stay in the library.")) return;
     await api(`/api/chats/${id}`, { method: "DELETE" });
     setChats((cs) => (cs ?? []).filter((c) => c.id !== id));
     if (chatId === id) pickChat(null);
@@ -178,14 +178,14 @@ export default function Studio() {
   return (
     <div className="studio">
       <aside className="card chats">
-        <button type="button" className="btn primary" onClick={() => pickChat(null)} disabled={busy}><I name="plus" />طلب جديد</button>
+        <button type="button" className="btn primary" onClick={() => pickChat(null)} disabled={busy}><I name="plus" />New request</button>
         <div className="chats-list">
-          {chats === null && <div className="muted" style={{ padding: 10, fontSize: 13 }}>بيحمّل…</div>}
+          {chats === null && <div className="muted" style={{ padding: 10, fontSize: 13 }}>Loading…</div>}
           {chats?.map((c) => (
             <div key={c.id} className="chat-item" aria-current={c.id === chatId} onClick={() => pickChat(c.id)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && pickChat(c.id)}>
-              <span className="t">{c.title || "محادثة جديدة"}</span>
+              <span className="t">{c.title || "New chat"}</span>
               <small className="muted">{ago(c.updatedAt)}</small>
-              <button type="button" className="btn sm icon ghost del" onClick={(e) => { e.stopPropagation(); removeChat(c.id); }} aria-label="مسح"><I name="trash" /></button>
+              <button type="button" className="btn sm icon ghost del" onClick={(e) => { e.stopPropagation(); removeChat(c.id); }} aria-label="Delete"><I name="trash" /></button>
             </div>
           ))}
         </div>
@@ -196,13 +196,13 @@ export default function Studio() {
           {empty && (
             <div className="welcome">
               <span className="logo-mark" style={{ width: 52, height: 52, borderRadius: 16, margin: "0 auto", display: "grid" }} />
-              <h2>إيه اللي تحب نعمله لـ {brand.name} النهارده؟</h2>
-              <p>اكتب البريف أو اختار بداية. المصمم بيلتزم بالبراند بوك، وبيولّد الصور على Higgsfield، وبيسلّمك إعلانات جاهزة للنشر.</p>
+              <h2>What should we make for {brand.name} today?</h2>
+              <p>Write a brief or pick a starter. The designer follows the brand book, generates visuals on Higgsfield and hands you ready-to-post ads.</p>
               {(bookEmpty || !hasLogo || !ready.mcp) && (
                 <div className="stack" style={{ marginBottom: 18 }}>
-                  {bookEmpty && <div className="notice"><I name="book" /><span className="grow">البراند بوك لسه فاضي — املاه (أو ارفع الجايدلاين ويتملا لوحده) عشان المصمم يلتزم بالهوية.</span><Link href={`/brands/${brand.id}?tab=book`}>البراند بوك</Link></div>}
-                  {!bookEmpty && !hasLogo && <div className="notice"><I name="image" /><span className="grow">ارفع اللوجو عشان يتحط على كل التصاميم.</span><Link href={`/brands/${brand.id}?tab=book`}>ارفع</Link></div>}
-                  {!ready.mcp && <div className="notice"><I name="spark" /><span className="grow">Higgsfield مش متوصل: هيطلعلك التصميم بالنص والبرومبت، وترفع الصورة بنفسك.</span><Link href="/settings">اربطه</Link></div>}
+                  {bookEmpty && <div className="notice"><I name="book" /><span className="grow">The brand book is empty — fill it in (or upload your guidelines to auto-fill it) so the designer stays on brand.</span><Link href={`/brands/${brand.id}?tab=book`}>Brand book</Link></div>}
+                  {!bookEmpty && !hasLogo && <div className="notice"><I name="image" /><span className="grow">Upload your logo so it goes on every design.</span><Link href={`/brands/${brand.id}?tab=book`}>Upload</Link></div>}
+                  {!ready.mcp && <div className="notice"><I name="spark" /><span className="grow">Higgsfield isn't connected: you'll get the copy and image prompt, and can upload the image yourself.</span><Link href="/settings">Connect</Link></div>}
                 </div>
               )}
               <div className="starters">
@@ -230,7 +230,7 @@ export default function Studio() {
                 {tools(live.tools)}
                 {live.text ? <Prose text={live.text} /> : null}
                 {!live.error && (live.thinking || (!live.text && !live.tools.some((t) => t.live))) && (
-                  <div className="thinking"><span className="dots"><i /><i /><i /></span>{live.thinking ? live.thinking.split("\n").filter(Boolean).pop()?.slice(0, 140) : "بيفكر في الفكرة…"}</div>
+                  <div className="thinking"><span className="dots"><i /><i /><i /></span>{live.thinking ? live.thinking.split("\n").filter(Boolean).pop()?.slice(0, 140) : "Working on the idea…"}</div>
                 )}
                 {board(live.designIds)}
                 {live.error && <div className="error-note">{live.error}</div>}
@@ -243,28 +243,28 @@ export default function Studio() {
           <div className="composer-inner">
             <div className="quick">{QUICK.map((q) => <button key={q.label} type="button" className="chip" onClick={() => { setText(q.text); input.current?.focus(); }}>{q.label}</button>)}</div>
             <div className="composer-box" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}>
-              <label className="btn icon ghost" title="أرفق صور (منتج، مرجع…)" aria-label="أرفق صور">
+              <label className="btn icon ghost" title="Attach images (product, reference…)" aria-label="Attach images">
                 <I name="clip" />
                 <input type="file" hidden multiple accept="image/*" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
               </label>
               <div className="grow">
                 {(pending.length > 0 || uploading) && (
                   <div className="pending-files">
-                    {pending.map((p) => <div key={p.id} className="pf"><img src={p.url} alt={p.name} /><button type="button" onClick={() => setPending((x) => x.filter((y) => y.id !== p.id))} aria-label="شيل">×</button></div>)}
-                    {uploading && <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>بيرفع…</span>}
+                    {pending.map((p) => <div key={p.id} className="pf"><img src={p.url} alt={p.name} /><button type="button" onClick={() => setPending((x) => x.filter((y) => y.id !== p.id))} aria-label="Remove">×</button></div>)}
+                    {uploading && <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>Uploading…</span>}
                   </div>
                 )}
                 <textarea
-                  ref={input} rows={1} value={text} placeholder={`اكتب البريف لـ ${brand.name}…`}
+                  ref={input} rows={1} value={text} placeholder={`Write a brief for ${brand.name}…`}
                   onChange={(e) => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(200, e.target.scrollHeight) + "px"; }}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); } }}
                   onPaste={(e) => { const f = [...e.clipboardData.files]; if (f.length) { e.preventDefault(); addFiles(f); } }}
                   style={{ width: "100%" }}
                 />
               </div>
-              <button type="button" className="btn primary icon" onClick={() => send()} disabled={busy || (!text.trim() && !pending.length)} aria-label="ابعت"><I name="send" className="flip" /></button>
+              <button type="button" className="btn primary icon" onClick={() => send()} disabled={busy || (!text.trim() && !pending.length)} aria-label="Send"><I name="send" className="flip" /></button>
             </div>
-            <div className="hint">Enter للإرسال · Shift+Enter لسطر جديد · تقدر تسحب صور المنتج هنا</div>
+            <div className="hint">Enter to send · Shift+Enter for a new line · Drop product photos here</div>
           </div>
         </div>
       </section>
@@ -275,7 +275,7 @@ export default function Studio() {
           onClose={() => setOpen(null)}
           onChange={(d) => setDesigns((m) => ({ ...m, [d.id]: d }))}
           onRemove={(id) => { setDesigns((m) => { const n = { ...m }; delete n[id]; return n; }); }}
-          onRevise={(d) => { setText(`عدّل التصميم «${d.title}» (id: ${d.id}): `); setTimeout(() => input.current?.focus(), 50); }}
+          onRevise={(d) => { setText(`Revise the design "${d.title}" (id: ${d.id}): `); setTimeout(() => input.current?.focus(), 50); }}
         />
       )}
     </div>

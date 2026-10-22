@@ -14,7 +14,7 @@ const BETAS: Anthropic.Beta.AnthropicBeta[] = ["mcp-client-2025-11-20", "server-
 const MAX_STEPS = 16;
 
 export function client(cfg: Config) {
-  if (!cfg.anthropicKey) throw new Error("ضيف مفتاح Claude API من صفحة الإعدادات الأول");
+  if (!cfg.anthropicKey) throw new Error("Add your Claude API key in Settings first");
   return new Anthropic({ apiKey: cfg.anthropicKey });
 }
 
@@ -257,16 +257,16 @@ export async function runTurn(chatId: string, emit: (e: DesignerEvent) => void) 
       }
       msg = await stream.finalMessage();
     } catch (err) {
-      if (err instanceof Anthropic.AuthenticationError) throw new Error("مفتاح Claude API مش صحيح — راجعه في الإعدادات");
-      if (err instanceof Anthropic.RateLimitError) throw new Error("فيه ضغط على Claude دلوقتي، جرّب كمان دقيقة");
+      if (err instanceof Anthropic.AuthenticationError) throw new Error("Invalid Claude API key — check it in Settings");
+      if (err instanceof Anthropic.RateLimitError) throw new Error("Claude is busy right now, try again in a minute");
       if (err instanceof Anthropic.APIError) throw new Error(`Claude: ${err.message}`);
-      if (err instanceof SyntaxError) { emit({ t: "error", message: "الرد اتقطع، جرّب تاني" }); return; }
+      if (err instanceof SyntaxError) { emit({ t: "error", message: "The reply was cut off, try again" }); return; }
       throw err;
     }
 
     await appendMessage(chatId, "assistant", msg.content as Stored[]);
 
-    if (msg.stop_reason === "refusal") { emit({ t: "error", message: "Claude رفض الطلب ده. جرّب تعيد صياغته." }); break; }
+    if (msg.stop_reason === "refusal") { emit({ t: "error", message: "Claude declined this request. Try rephrasing it." }); break; }
     if (msg.stop_reason === "pause_turn") continue; // server-side tool loop paused; resend to resume
 
     const uses = msg.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");

@@ -21,7 +21,7 @@ export const PATCH = route<Params>(async (req, { params }) => {
 // Removed from the board but kept, so the chat that made it can still show it to the designer.
 export const DELETE = route<Params>(async (_r, { params }) => {
   const d = await prisma.design.findUnique({ where: { id: (await params).id } });
-  if (!d) return fail("التصميم مش موجود", 404);
+  if (!d) return fail("Design not found", 404);
   await prisma.design.update({ where: { id: d.id }, data: { archived: true } });
   return json({ ok: true });
 });

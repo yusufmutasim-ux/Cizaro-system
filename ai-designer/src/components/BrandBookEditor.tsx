@@ -7,43 +7,43 @@ import { Palette } from "./BrandMark";
 import { I } from "./Icons";
 
 type TextKey = Exclude<keyof BrandBook, "colors">;
-const ROLES: Record<string, string> = { primary: "أساسي", secondary: "ثانوي", accent: "مميز (Accent)", background: "خلفية", text: "نص", other: "تاني" };
+const ROLES: Record<string, string> = { primary: "Primary", secondary: "Secondary", accent: "Accent", background: "Background", text: "Text", other: "Other" };
 
 const SECTIONS: { title: string; icon: string; fields: { k: TextKey; label: string; hint?: string; long?: boolean }[] }[] = [
-  { title: "البراند", icon: "book", fields: [
-    { k: "tagline", label: "التاجلاين / السلوجان" },
-    { k: "industry", label: "المجال" },
-    { k: "description", label: "عن البراند", hint: "البراند بيبيع إيه، وإيه اللي يميزه", long: true },
-    { k: "audience", label: "الجمهور المستهدف", hint: "مين، السن، الاهتمامات، المستوى", long: true },
-    { k: "markets", label: "الأسواق", hint: "مثلاً: مصر والسعودية" },
-    { k: "personality", label: "شخصية البراند", hint: "مثلاً: جريء، فخم، قريب من الناس" },
+  { title: "Brand", icon: "book", fields: [
+    { k: "tagline", label: "Tagline / slogan" },
+    { k: "industry", label: "Industry" },
+    { k: "description", label: "About the brand", hint: "What the brand sells and what makes it different", long: true },
+    { k: "audience", label: "Target audience", hint: "Who they are: age, interests, income level", long: true },
+    { k: "markets", label: "Markets", hint: "e.g. Egypt and Saudi Arabia" },
+    { k: "personality", label: "Brand personality", hint: "e.g. bold, premium, down-to-earth" },
   ] },
-  { title: "الصوت والكلام", icon: "chat", fields: [
-    { k: "toneOfVoice", label: "نبرة الكلام", hint: "إزاي البراند بيتكلم", long: true },
-    { k: "languages", label: "لغة الكوبي", hint: "مثلاً: عامية مصرية + إنجليزي" },
-    { k: "ctaStyle", label: "الـ CTA المعتادة", hint: "مثلاً: اطلب دلوقتي، تسوق الآن" },
-    { k: "hashtags", label: "هاشتاجات البراند" },
+  { title: "Voice & copy", icon: "chat", fields: [
+    { k: "toneOfVoice", label: "Tone of voice", hint: "How the brand talks", long: true },
+    { k: "languages", label: "Copy language", hint: "e.g. Egyptian Arabic + English" },
+    { k: "ctaStyle", label: "Usual CTAs", hint: "e.g. Order now, Shop the drop" },
+    { k: "hashtags", label: "Brand hashtags" },
   ] },
-  { title: "الشكل والصور", icon: "image", fields: [
-    { k: "visualStyle", label: "الستايل البصري", hint: "المود، الإضاءة، التكوين، الإحساس العام", long: true },
-    { k: "photography", label: "التصوير والصور", hint: "الموديلز، اللوكيشنز، الستايلنج، الألوان والجريدنج", long: true },
-    { k: "layoutRules", label: "قواعد اللاي أوت والتايبوجرافي", long: true },
-    { k: "logoRules", label: "قواعد اللوجو", hint: "مكانه، المساحة حواليه، نسخة الفاتح والغامق", long: true },
+  { title: "Look & imagery", icon: "image", fields: [
+    { k: "visualStyle", label: "Visual style", hint: "Mood, lighting, composition, overall feel", long: true },
+    { k: "photography", label: "Photography & imagery", hint: "Models, locations, styling, color grading", long: true },
+    { k: "layoutRules", label: "Layout & typography rules", long: true },
+    { k: "logoRules", label: "Logo rules", hint: "Placement, clear space, light and dark versions", long: true },
   ] },
-  { title: "القواعد", icon: "shield", fields: [
-    { k: "dos", label: "دايماً ✓", hint: "قاعدة في كل سطر", long: true },
-    { k: "donts", label: "ممنوع ✕", hint: "قاعدة في كل سطر", long: true },
-    { k: "competitors", label: "المنافسين وإزاي نختلف عنهم", long: true },
-    { k: "notes", label: "ملاحظات تانية", long: true },
+  { title: "Rules", icon: "shield", fields: [
+    { k: "dos", label: "Always ✓", hint: "One rule per line", long: true },
+    { k: "donts", label: "Never ✕", hint: "One rule per line", long: true },
+    { k: "competitors", label: "Competitors and how we stand apart", long: true },
+    { k: "notes", label: "Other notes", long: true },
   ] },
 ];
 
 const FILE_KINDS: { k: string; title: string; hint: string; accept: string; photo?: boolean }[] = [
-  { k: "logo", title: "اللوجو", hint: "PNG شفاف أو SVG. أول لوجو بيتحط على التصاميم.", accept: "image/*,.svg" },
-  { k: "product", title: "صور المنتجات", hint: "بيستخدمها المصمم كمرجع عشان المنتج يطلع مظبوط.", accept: "image/*", photo: true },
-  { k: "reference", title: "مراجع الستايل", hint: "شغل قديم أو مود بورد للشكل اللي عايزه.", accept: "image/*", photo: true },
-  { k: "font", title: "ملفات الخطوط", hint: "TTF / OTF / WOFF — بتتستخدم في نصوص الإعلانات.", accept: ".ttf,.otf,.woff,.woff2" },
-  { k: "guideline", title: "الجايدلاين", hint: "PDF أو صور الجايدلاين.", accept: ".pdf,image/*" },
+  { k: "logo", title: "Logo", hint: "Transparent PNG or SVG. The first logo is placed on designs.", accept: "image/*,.svg" },
+  { k: "product", title: "Product photos", hint: "Used as references so the product comes out accurate.", accept: "image/*", photo: true },
+  { k: "reference", title: "Style references", hint: "Past work or a mood board of the look you want.", accept: "image/*", photo: true },
+  { k: "font", title: "Font files", hint: "TTF / OTF / WOFF — used for the text on your ads.", accept: ".ttf,.otf,.woff,.woff2" },
+  { k: "guideline", title: "Brand guidelines", hint: "Guideline PDF or images.", accept: ".pdf,image/*" },
 ];
 
 export default function BrandBookEditor() {
@@ -68,7 +68,7 @@ export default function BrandBookEditor() {
     setSaving(true);
     try {
       const out = await api<BrandDTO>(`/api/brands/${brand.id}`, { method: "PATCH", json: { name, color, book: { ...book, colors: book.colors.filter((c) => /^#[0-9a-fA-F]{6}$/.test(c.hex)) } } });
-      updateBrand(out); setBook(out.book); setFilled(false); say("البراند بوك اتحفظ");
+      updateBrand(out); setBook(out.book); setFilled(false); say("Brand book saved");
       router.refresh();
     } catch (e) { say((e as Error).message); }
     setSaving(false);
@@ -82,25 +82,25 @@ export default function BrandBookEditor() {
     setBusyKind("");
   }
   async function removeFile(f: FileDTO) {
-    if (!confirm(`تمسح ${f.name}؟`)) return;
+    if (!confirm(`Delete ${f.name}?`)) return;
     await api(`/api/files/${f.id}`, { method: "DELETE" });
     await reloadFiles();
     if (f.kind === "logo") updateBrand(await api<BrandDTO>(`/api/brands/${brand.id}`));
   }
 
   async function autofill() {
-    if (!ready.claude) { say("ضيف مفتاح Claude API من الإعدادات الأول"); return; }
+    if (!ready.claude) { say("Add your Claude API key in Settings first"); return; }
     setExtracting(true);
     try {
       const ids = files.filter((f) => f.kind === "guideline" || f.kind === "logo" || f.kind === "reference").map((f) => f.id);
       const out = await api<BrandBook>(`/api/brands/${brand.id}/extract`, { method: "POST", json: { fileIds: ids, notes } });
-      setBook(out); setFilled(true); say("اتملا — راجعه واحفظ");
+      setBook(out); setFilled(true); say("Filled in — review it and save");
     } catch (e) { say((e as Error).message); }
     setExtracting(false);
   }
 
   async function deleteBrand() {
-    if (prompt(`هيتمسح البراند وكل التصاميم والمحادثات بتاعته. اكتب اسم البراند للتأكيد: ${brand.name}`) !== brand.name) return;
+    if (prompt(`This deletes the brand with all its designs and chats. Type the brand name to confirm: ${brand.name}`) !== brand.name) return;
     await api(`/api/brands/${brand.id}`, { method: "DELETE" });
     router.push("/"); router.refresh();
   }
@@ -109,12 +109,12 @@ export default function BrandBookEditor() {
     <div className="page">
       <div className="book">
         <div className="stack" style={{ gap: 16 }}>
-          {filled && <div className="notice"><I name="wand" /><span className="grow">المصمم ملا البراند بوك من الملفات. راجع كل حاجة وعدّل اللي محتاج، وبعدين احفظ.</span></div>}
+          {filled && <div className="notice"><I name="wand" /><span className="grow">The designer filled in the brand book from your files. Review everything, adjust what you need, then save.</span></div>}
           <div className="card book-section">
-            <h3><I name="spark" />الاسم ولون التاب</h3>
+            <h3><I name="spark" />Name & tab color</h3>
             <div className="row">
-              <input type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label="لون التاب" style={{ width: 44, height: 40, border: 0, background: "none", cursor: "pointer" }} />
-              <input className="input" value={name} onChange={(e) => setName(e.target.value)} aria-label="اسم البراند" />
+              <input type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label="Tab color" style={{ width: 44, height: 40, border: 0, background: "none", cursor: "pointer" }} />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} aria-label="Brand name" />
             </div>
           </div>
 
@@ -133,49 +133,49 @@ export default function BrandBookEditor() {
           ))}
 
           <div className="card book-section">
-            <h3><I name="spark" />الألوان</h3>
-            <small className="muted">المصمم مش هيستخدم غير الألوان دي في النصوص والأشكال، وهيبني ألوان الصور عليها.</small>
+            <h3><I name="spark" />Colors</h3>
+            <small className="muted">The designer only uses these colors for type and shapes, and builds the imagery around them.</small>
             <Palette colors={book.colors} />
             <div className="colors">
               {book.colors.map((c, i) => (
                 <div key={i} className="color-row">
-                  <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(c.hex) ? c.hex : "#000000"} onChange={(e) => setColorAt(i, { hex: e.target.value.toUpperCase() })} aria-label="اللون" />
+                  <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(c.hex) ? c.hex : "#000000"} onChange={(e) => setColorAt(i, { hex: e.target.value.toUpperCase() })} aria-label="Color" />
                   <input className="input mono" value={c.hex} onChange={(e) => setColorAt(i, { hex: e.target.value.toUpperCase() })} aria-label="HEX" />
-                  <input className="input c-name" value={c.name} onChange={(e) => setColorAt(i, { name: e.target.value })} placeholder="اسم اللون" />
+                  <input className="input c-name" value={c.name} onChange={(e) => setColorAt(i, { name: e.target.value })} placeholder="Color name" />
                   <select className="select c-role" value={c.role} onChange={(e) => setColorAt(i, { role: e.target.value as BrandBook["colors"][number]["role"] })}>
                     {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
-                  <button type="button" className="btn sm icon ghost" onClick={() => setBook((b) => ({ ...b, colors: b.colors.filter((_, j) => j !== i) }))} aria-label="مسح"><I name="trash" /></button>
+                  <button type="button" className="btn sm icon ghost" onClick={() => setBook((b) => ({ ...b, colors: b.colors.filter((_, j) => j !== i) }))} aria-label="Delete"><I name="trash" /></button>
                 </div>
               ))}
             </div>
-            <div><button type="button" className="btn sm" onClick={() => setBook((b) => ({ ...b, colors: [...b.colors, { name: "", hex: "#7C6CFF", role: b.colors.length ? "secondary" : "primary" }] }))}><I name="plus" />ضيف لون</button></div>
+            <div><button type="button" className="btn sm" onClick={() => setBook((b) => ({ ...b, colors: [...b.colors, { name: "", hex: "#7C6CFF", role: b.colors.length ? "secondary" : "primary" }] }))}><I name="plus" />Add color</button></div>
           </div>
 
           <div className="card book-section">
-            <h3><I name="edit" />الخطوط</h3>
+            <h3><I name="edit" />Fonts</h3>
             <div className="grid2">
-              <label className="field"><span>خط العناوين</span><input className="input" value={book.headingFont} onChange={(e) => set("headingFont", e.target.value)} placeholder="مثلاً: Cairo" /></label>
-              <label className="field"><span>خط النص</span><input className="input" value={book.bodyFont} onChange={(e) => set("bodyFont", e.target.value)} placeholder="مثلاً: Tajawal" /></label>
+              <label className="field"><span>Heading font</span><input className="input" value={book.headingFont} onChange={(e) => set("headingFont", e.target.value)} placeholder="e.g. Montserrat" /></label>
+              <label className="field"><span>Body font</span><input className="input" value={book.bodyFont} onChange={(e) => set("bodyFont", e.target.value)} placeholder="e.g. Inter" /></label>
             </div>
-            <small className="muted">لو رفعت ملف الخط بنفس الاسم هيتستخدم هو. لو لأ، بيتجاب من Google Fonts بالاسم.</small>
+            <small className="muted">If you upload a font file with that name, it is used. Otherwise the font is loaded from Google Fonts by name.</small>
           </div>
 
           {dirty && (
             <div className="sticky-save">
-              <span className="muted grow" style={{ alignSelf: "center" }}>فيه تعديلات مش متحفظة</span>
-              <button type="button" className="btn ghost" onClick={() => { setBook(brand.book); setName(brand.name); setColor(brand.color); setFilled(false); }}>تراجع</button>
-              <button type="button" className="btn primary" onClick={save} disabled={saving}>{saving ? "بيحفظ…" : "حفظ البراند بوك"}</button>
+              <span className="muted grow" style={{ alignSelf: "center" }}>You have unsaved changes</span>
+              <button type="button" className="btn ghost" onClick={() => { setBook(brand.book); setName(brand.name); setColor(brand.color); setFilled(false); }}>Discard</button>
+              <button type="button" className="btn primary" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save brand book"}</button>
             </div>
           )}
         </div>
 
         <div className="stack" style={{ gap: 16 }}>
           <div className="card book-section" style={{ borderColor: "color-mix(in srgb, var(--accent) 40%, transparent)" }}>
-            <h3><I name="wand" />املاه أوتوماتيك</h3>
-            <small className="muted">ارفع الجايدلاين (PDF أو صور) واللوجو تحت، أو اكتب وصف للبراند، والمصمم يملا البراند بوك كله.</small>
-            <textarea className="textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="اختياري: اكتب أي حاجة عن البراند…" />
-            <button type="button" className="btn primary" onClick={autofill} disabled={extracting}>{extracting ? "بيقرا الملفات…" : "املا البراند بوك"}</button>
+            <h3><I name="wand" />Auto-fill</h3>
+            <small className="muted">Upload your guidelines (PDF or images) and logo below, or describe the brand, and the designer fills in the whole brand book.</small>
+            <textarea className="textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional: tell us anything about the brand…" />
+            <button type="button" className="btn primary" onClick={autofill} disabled={extracting}>{extracting ? "Reading files…" : "Fill brand book"}</button>
           </div>
 
           {FILE_KINDS.map((fk) => {
@@ -183,16 +183,16 @@ export default function BrandBookEditor() {
             return (
               <div key={fk.k} className="card book-section">
                 <h3 className="row">{fk.title}<span className="muted" style={{ fontSize: 13, fontWeight: 500 }}>{list.length || ""}</span></h3>
-                <small className="muted">{fk.hint}{(fk.k === "product" || fk.k === "reference") && !ready.publicUrl ? " (عشان Higgsfield يستخدمها لازم التطبيق يكون مرفوع و APP_URL متحدد.)" : ""}</small>
+                <small className="muted">{fk.hint}{(fk.k === "product" || fk.k === "reference") && !ready.publicUrl ? " (Higgsfield can use them once the app is deployed with APP_URL set.)" : ""}</small>
                 <div className="files-grid">
                   {list.map((f) => (
                     <div key={f.id} className={`file-tile ${fk.photo ? "photo" : ""}`} title={`${f.name} · ${kb(f.size)}`}>
                       {f.mime.startsWith("image/") ? <img src={f.url} alt={f.name} /> : <a href={f.url} target="_blank" rel="noreferrer" style={{ overflowWrap: "anywhere" }}>{f.name}</a>}
-                      <button type="button" className="x" onClick={() => removeFile(f)} aria-label="مسح">×</button>
+                      <button type="button" className="x" onClick={() => removeFile(f)} aria-label="Delete">×</button>
                     </div>
                   ))}
                   <label className="file-tile add">
-                    <I name={busyKind === fk.k ? "upload" : "plus"} />{busyKind === fk.k ? "بيرفع…" : "ارفع"}
+                    <I name={busyKind === fk.k ? "upload" : "plus"} />{busyKind === fk.k ? "Uploading…" : "Upload"}
                     <input type="file" hidden multiple accept={fk.accept} onChange={(e) => { addFiles(fk.k, e.target.files); e.target.value = ""; }} />
                   </label>
                 </div>
@@ -200,7 +200,7 @@ export default function BrandBookEditor() {
             );
           })}
 
-          <button type="button" className="btn danger ghost" onClick={deleteBrand}><I name="trash" />مسح البراند</button>
+          <button type="button" className="btn danger ghost" onClick={deleteBrand}><I name="trash" />Delete brand</button>
         </div>
       </div>
     </div>

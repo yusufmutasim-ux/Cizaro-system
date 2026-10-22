@@ -19,7 +19,7 @@ export const PUT = route(async (req) => {
   for (const k of ["anthropicKey", "mcpUrl", "mcpToken", "appUrl"] as SettingKey[]) {
     if (typeof b[k] === "string" && !b[k].includes("••••")) values[k] = b[k];
   }
-  if (values.mcpUrl && !/^https:\/\//.test(values.mcpUrl.trim())) return json({ error: "رابط الـ MCP لازم يبدأ بـ https://" }, 400);
+  if (values.mcpUrl && !/^https:\/\//.test(values.mcpUrl.trim())) return json({ error: "The MCP URL must start with https://" }, 400);
   await saveSettings(values);
   return json(await view());
 });

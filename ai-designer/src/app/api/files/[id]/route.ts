@@ -7,7 +7,7 @@ const INLINE = /^(image\/(png|jpeg|gif|webp|svg\+xml)|application\/pdf|font\/(tt
 export const GET = route<Params>(async (req, { params }) => {
   const f = await prisma.brandFile.findUnique({ where: { id: (await params).id } });
   const buf = f && (await readStored(f.storageKey).catch(() => null));
-  if (!f || !buf) return fail("الملف مش موجود", 404);
+  if (!f || !buf) return fail("File not found", 404);
   const inline = INLINE.test(f.mime) && !new URL(req.url).searchParams.has("download");
   return new Response(new Uint8Array(buf), {
     headers: {

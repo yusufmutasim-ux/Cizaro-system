@@ -8,7 +8,7 @@ const include = { files: { where: { kind: "logo" }, orderBy: { createdAt: "asc" 
 
 export const GET = route<Params>(async (_r, { params }) => {
   const b = await prisma.brand.findUnique({ where: { id: (await params).id }, include });
-  return b ? json(brandDTO(b)) : fail("البراند مش موجود", 404);
+  return b ? json(brandDTO(b)) : fail("Brand not found", 404);
 });
 
 // { name?, color?, book? } — book is the whole brand book
@@ -16,7 +16,7 @@ export const PATCH = route<Params>(async (req, { params }) => {
   const { id } = await params;
   const b = await req.json().catch(() => ({}));
   const data: { name?: string; color?: string; book?: string } = {};
-  if ("name" in b) { const n = str(b.name, 60)?.trim(); if (!n) return fail("اكتب اسم البراند"); data.name = n; }
+  if ("name" in b) { const n = str(b.name, 60)?.trim(); if (!n) return fail("Enter a brand name"); data.name = n; }
   if (/^#[0-9a-fA-F]{6}$/.test(b.color)) data.color = b.color;
   if (b.book && typeof b.book === "object") data.book = JSON.stringify(parseBook(JSON.stringify(b.book)));
   return json(brandDTO(await prisma.brand.update({ where: { id }, data, include })));

@@ -8,7 +8,7 @@ export type ChatView = { role: "user" | "assistant"; text: string; images: strin
 /** Turns the stored API transcript into chat bubbles: consecutive assistant steps merge into one reply. */
 export const GET = route<Params>(async (_r, { params }) => {
   const chat = await prisma.chat.findUnique({ where: { id: (await params).id } });
-  if (!chat) return fail("المحادثة مش موجودة", 404);
+  if (!chat) return fail("Chat not found", 404);
   const rows = await prisma.chatMessage.findMany({ where: { chatId: chat.id }, orderBy: { seq: "asc" } });
   const view: ChatView[] = [];
   const last = () => view[view.length - 1];

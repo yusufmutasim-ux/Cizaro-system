@@ -15,7 +15,7 @@
   --bad: #f87171;
   --r: 14px;
   --r-lg: 20px;
-  --font: "IBM Plex Sans Arabic", "Inter", system-ui, -apple-system, sans-serif;
+  --font: "Inter", "IBM Plex Sans Arabic", system-ui, -apple-system, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, monospace;
   --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   color-scheme: dark;
@@ -274,3 +274,9 @@ img { display: block; max-width: 100%; }
 }
 
 [dir="rtl"] .i.flip { transform: scaleX(-1); }
+
+/* User and brand content can be Arabic or English: each paragraph picks its own direction. */
+.prose > div, .msg.user .prose, .input, .textarea, .composer-box textarea, .chat-item .t, .design-card .meta b, .campaign h4, .campaign p, .plan p, .brand-card b, .ws-head .muted, .check-box, .details p {
+  unicode-bidi: plaintext;
+  text-align: start;
+}

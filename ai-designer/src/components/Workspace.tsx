@@ -41,12 +41,12 @@ function Inner({ brands: initialBrands, brand: initial, ready }: { brands: Brand
           <BrandMark brand={brand} size={40} />
           <div>
             <h1>{brand.name}</h1>
-            <div className="muted" style={{ fontSize: 13 }}>{brand.book.tagline || "مصمم البراند جاهز"}</div>
+            <div className="muted" style={{ fontSize: 13 }}>{brand.book.tagline || "Your brand designer is ready"}</div>
           </div>
           <div className="sections" role="tablist">
-            <button type="button" aria-pressed={tab === "studio"} onClick={() => go("studio")}><I name="chat" />الاستوديو</button>
-            <button type="button" aria-pressed={tab === "library"} onClick={() => go("library")}><I name="grid" />المكتبة</button>
-            <button type="button" aria-pressed={tab === "book"} onClick={() => go("book")}><I name="book" />البراند بوك</button>
+            <button type="button" aria-pressed={tab === "studio"} onClick={() => go("studio")}><I name="chat" />Studio</button>
+            <button type="button" aria-pressed={tab === "library"} onClick={() => go("library")}><I name="grid" />Library</button>
+            <button type="button" aria-pressed={tab === "book"} onClick={() => go("book")}><I name="book" />Brand book</button>
           </div>
         </div>
         {tab === "studio" && <Studio key={brand.id} />}

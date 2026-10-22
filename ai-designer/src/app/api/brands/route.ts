@@ -10,7 +10,7 @@ export const GET = route(async () => {
 export const POST = route(async (req) => {
   const b = await req.json().catch(() => ({}));
   const name = str(b.name, 60)?.trim();
-  if (!name) return fail("اكتب اسم البراند");
+  if (!name) return fail("Enter a brand name");
   const color = /^#[0-9a-fA-F]{6}$/.test(b.color) ? b.color : "#6D5EFC";
   const brand = await prisma.brand.create({ data: { name, color, sort: await prisma.brand.count() }, include: brandInclude });
   return json(brandDTO(brand), 201);

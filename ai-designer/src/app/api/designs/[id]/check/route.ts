@@ -8,7 +8,7 @@ export const maxDuration = 300;
 export const POST = route<Params>(async (req, { params }) => {
   const { id } = await params;
   const file = (await req.formData()).get("file");
-  if (!(file instanceof File)) return fail("مفيش صورة للمراجعة");
+  if (!(file instanceof File)) return fail("No image to review");
   const check = await checkDesign(id, Buffer.from(await file.arrayBuffer()));
   await prisma.design.update({ where: { id }, data: { check: JSON.stringify({ ...check, at: new Date().toISOString() }) } });
   return json(check);

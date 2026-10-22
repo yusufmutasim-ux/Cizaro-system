@@ -16,7 +16,7 @@ export async function api<T = unknown>(url: string, init: RequestInit & { json?:
   });
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) { location.href = "/login"; throw new Error(data.error || "401"); }
-  if (!res.ok) throw new Error(data.error || `خطأ ${res.status}`);
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
   return data as T;
 }
 
@@ -33,10 +33,10 @@ export async function copyText(v: string) {
   try { await navigator.clipboard.writeText(v); return true; } catch { return false; }
 }
 
-const rtf = new Intl.RelativeTimeFormat("ar-EG-u-nu-latn", { numeric: "auto" });
+const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 export function ago(iso: string) {
   const s = (new Date(iso).getTime() - Date.now()) / 1000, a = Math.abs(s);
-  if (a < 45) return "دلوقتي";
+  if (a < 45) return "just now";
   if (a < 3600) return rtf.format(Math.round(s / 60), "minute");
   if (a < 86400) return rtf.format(Math.round(s / 3600), "hour");
   return rtf.format(Math.round(s / 86400), "day");
