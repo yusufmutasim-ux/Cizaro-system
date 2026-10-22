@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Brand {
+  id        String      @id @default(cuid())
+  name      String
+  color     String      @default("#6d5efc") // accent used for the brand's tab
+  book      String      @default("{}")      // JSON brand book (see src/lib/brand.ts)
+  sort      Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  files     BrandFile[]
+  chats     Chat[]
+  designs   Design[]
+  campaigns Campaign[]
+}
+
+// Logos, fonts, reference images, product photos, guideline files and chat attachments
+model BrandFile {
+  id         String   @id @default(cuid())
+  brandId    String
+  brand      Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  kind       String   // logo | font | reference | product | guideline | attachment
+  name       String
+  storageKey String
+  mime       String
+  size       Int
+  createdAt  DateTime @default(now())
+
+  @@index([brandId, kind])
+}
+
+model Chat {
+  id        String        @id @default(cuid())
+  brandId   String
+  brand     Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  title     String        @default("")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+  designs   Design[]
+  campaigns Campaign[]
+
+  @@index([brandId, updatedAt])
+}
+
+// One API turn, stored exactly as sent/received so history is replayed unchanged
+model ChatMessage {
+  id        String   @id @default(cuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role      String   // user | assistant
+  content   String   // JSON array of content blocks; images saved as {type:"image", fileId}
+  createdAt DateTime @default(now())
+  seq       Int
+
+  @@index([chatId, seq])
+}
+
+model Campaign {
+  id         String   @id @default(cuid())
+  brandId    String
+  brand      Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  chatId     String?
+  chat       Chat?    @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  name       String
+  bigIdea    String   @default("")
+  plan       String   @default("{}") // JSON: key message, audience, channels, timeline, budget split, KPIs
+  createdAt  DateTime @default(now())
+  designs    Design[]
+
+  @@index([brandId])
+}
+
+model Design {
+  id          String    @id @default(cuid())
+  brandId     String
+  brand       Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  chatId      String?
+  chat        Chat?     @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  campaignId  String?
+  campaign    Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  title       String
+  format      String    @default("1:1") // 1:1 | 4:5 | 9:16 | 16:9
+  placement   String    @default("")    // e.g. Instagram feed, Story, Facebook ad
+  headline    String    @default("")
+  subheadline String    @default("")
+  cta         String    @default("")
+  caption     String    @default("")
+  hashtags    String    @default("")
+  imagePrompt String    @default("")
+  rationale   String    @default("")
+  imageKey    String?   // generated visual saved locally
+  sourceUrl   String?   // where the visual came from (Higgsfield)
+  layout      String    @default("{}") // JSON: preset, textColor, accentColor, logoPosition
+  check       String?   // JSON: last brand compliance review
+  favorite    Boolean   @default(false)
+  archived    Boolean   @default(false) // removed from the board; kept so chat history still shows its image
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([brandId, createdAt])
+  @@index([campaignId])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
