@@ -14,8 +14,8 @@ type PushState = "loading" | "unsupported" | "install-first" | "blocked" | "off"
 type Me = User & { notifyPrefs: Record<string, boolean> };
 type Note = { id: string; fromId: string; text: string; readAt: string | null; createdAt: string };
 
-const KINDS_DESIGNER = ["assigned", "changes", "approved", "comment"] as const;
-const KINDS_MANAGER = ["review", "note", "comment", "assigned"] as const;
+const KINDS_DESIGNER = ["assigned", "changes", "approved", "comment", "upcoming"] as const;
+const KINDS_MANAGER = ["review", "note", "comment", "assigned", "upcoming"] as const;
 
 function b64ToBytes(b64: string) {
   const s = atob((b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"));

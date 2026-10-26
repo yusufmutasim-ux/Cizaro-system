@@ -10,29 +10,30 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
+  id           String             @id @default(cuid())
   name         String
-  email        String     @unique
+  email        String             @unique
   passwordHash String
-  role         String     @default("DESIGNER") // MANAGER | DESIGNER
-  active       Boolean    @default(true)
-  locale       String     @default("ar") // ar | en, also used for notifications
-  avatarKey    String?    // profile photo, relative to STORAGE_DIR
-  avatarAt     DateTime?  // bumps the photo URL when it changes
-  notifyPrefs  String     @default("{}") // JSON map of notification kind -> false when muted
-  branchId     String?    // the branch this person works in; non-managers only see that branch's tasks
-  branch       Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  leadId       String?    // who this person reports to; they can hand their tasks down to their reports
-  lead         User?      @relation("reports", fields: [leadId], references: [id], onDelete: SetNull)
-  reports      User[]     @relation("reports")
-  createdAt    DateTime   @default(now())
-  assigned     Task[]     @relation("assignee")
-  created      Task[]     @relation("creator")
+  role         String             @default("DESIGNER") // MANAGER | DESIGNER
+  active       Boolean            @default(true)
+  locale       String             @default("ar") // ar | en, also used for notifications
+  avatarKey    String? // profile photo, relative to STORAGE_DIR
+  avatarAt     DateTime? // bumps the photo URL when it changes
+  notifyPrefs  String             @default("{}") // JSON map of notification kind -> false when muted
+  branchId     String? // the branch this person works in; non-managers only see that branch's tasks
+  branch       Branch?            @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  leadId       String? // who this person reports to; they can hand their tasks down to their reports
+  lead         User?              @relation("reports", fields: [leadId], references: [id], onDelete: SetNull)
+  reports      User[]             @relation("reports")
+  createdAt    DateTime           @default(now())
+  assigned     Task[]             @relation("assignee")
+  created      Task[]             @relation("creator")
   activity     Activity[]
   files        File[]
   pushSubs     PushSubscription[]
   brandAssets  BrandAsset[]
   notesSent    Note[]
+  upcoming     Upcoming[]
 }
 
 model Task {
@@ -41,14 +42,14 @@ model Task {
   brief       String     @default("")
   type        String     @default("social")
   size        String     @default("")
-  due         String?    // YYYY-MM-DD
+  due         String? // YYYY-MM-DD
   priority    String     @default("normal") // low | normal | high | urgent
   status      String     @default("new") // new | doing | review | changes | done
   revisions   Int        @default(0)
   coverFileId String?
-  branchId    String?    // set when the brand has branches (Cizaro: Egypt / Saudi Arabia)
+  branchId    String? // set when the brand has branches (Cizaro: Egypt / Saudi Arabia)
   branch      Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  brandId     String?    // null only on rows from before brands existed; startup backfills them
+  brandId     String? // null only on rows from before brands existed; startup backfills them
   brand       Brand?     @relation(fields: [brandId], references: [id], onDelete: SetNull)
   assigneeId  String?
   assignee    User?      @relation("assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
@@ -72,7 +73,7 @@ model Activity {
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  kind      String   // created | status | comment | submitted | changes | approved | file
+  kind      String // created | status | comment | submitted | changes | approved | file
   text      String?
   toStatus  String?
   round     Int?
@@ -85,11 +86,11 @@ model File {
   id           String   @id @default(cuid())
   taskId       Int
   task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  slot         String   // ref | delivery
-  kind         String   // upload | link
+  slot         String // ref | delivery
+  kind         String // upload | link
   name         String
-  url          String?  // for links
-  storageKey   String?  // for uploads, relative to STORAGE_DIR
+  url          String? // for links
+  storageKey   String? // for uploads, relative to STORAGE_DIR
   mime         String?
   size         Int?
   uploadedById String
@@ -127,20 +128,22 @@ model Brand {
   tasks     Task[]
   assets    BrandAsset[]
   branches  Branch[]
+  upcoming  Upcoming[]
 }
 
 // A brand's office, e.g. Cizaro Egypt and Cizaro Saudi Arabia. Tasks and people belong to one.
 model Branch {
-  id      String @id @default(cuid())
-  brandId String
-  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  slug    String
-  name    String // Arabic
-  nameEn  String
-  code    String // short badge, e.g. EG / SA
-  sort    Int    @default(0)
-  tasks   Task[]
-  users   User[]
+  id       String     @id @default(cuid())
+  brandId  String
+  brand    Brand      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  slug     String
+  name     String // Arabic
+  nameEn   String
+  code     String // short badge, e.g. EG / SA
+  sort     Int        @default(0)
+  tasks    Task[]
+  users    User[]
+  upcoming Upcoming[]
 
   @@unique([brandId, slug])
 }
@@ -150,9 +153,9 @@ model BrandAsset {
   id           String   @id @default(cuid())
   brandId      String
   brand        Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  category     String   // logo | font | color | guideline | template | other
+  category     String // logo | font | color | guideline | template | other
   name         String
-  value        String?  // hex for colors
+  value        String? // hex for colors
   storageKey   String?
   mime         String?
   size         Int?
@@ -173,4 +176,21 @@ model Note {
   createdAt DateTime  @default(now())
 
   @@index([createdAt])
+}
+
+// Things coming up that the team should get ready for (campaigns, launches, occasions). Shown as a ticker on the board.
+model Upcoming {
+  id          String   @id @default(cuid())
+  title       String
+  note        String   @default("")
+  date        String? // YYYY-MM-DD
+  brandId     String? // null = every brand
+  brand       Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  branchId    String? // null = every branch
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([date])
 }
