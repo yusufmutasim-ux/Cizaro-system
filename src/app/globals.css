@@ -858,3 +858,11 @@ img.av.photo, img.me.photo { object-fit: cover; background: var(--fill); }
 .kit-move { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 14px; }
 .kit-delete-acts { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .btn-danger.solid { background: var(--red); color: #fff; }
+
+/* Shoots: links to photo folders */
+.kit-shoot .kit-ico { color: var(--accent); }
+.kit-shoot .kit-ico svg { width: 22px; height: 22px; }
+.kit-host { unicode-bidi: plaintext; text-align: start; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kit-shoot .kit-copy { padding-inline: 10px; }
+.kit-addshoot textarea { flex: 2; min-width: 180px; height: 40px; min-height: 40px; max-height: 140px; border: 0; border-radius: 20px; background: var(--fill); padding: 10px 14px; outline: none; resize: none; font: inherit; color: inherit; field-sizing: content; }
+@media (max-width: 560px) { .kit-addshoot input[type="text"], .kit-addshoot textarea { flex: 1 1 100%; } .kit-addshoot .btn { margin-inline-start: auto; } }

@@ -3,7 +3,7 @@ import { route, json, str } from "@/lib/api";
 import { saveUpload, MAX_UPLOAD } from "@/lib/storage";
 
 type Ctx = { params: Promise<{ id: string }> };
-const CATEGORIES = ["logo", "font", "color", "guideline", "template", "other"];
+const CATEGORIES = ["logo", "font", "color", "shoot", "guideline", "template", "other"];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const pub = ({ storageKey, ...a }: { storageKey: string | null } & Record<string, unknown>) => ({ ...a, hasFile: !!storageKey });
 
@@ -14,13 +14,21 @@ export const GET = route<Ctx>(async (_u, _r, { params }, e) => {
   return json(assets.map(pub));
 });
 
-// multipart: category, file (repeatable) — or JSON { category: "color", name, value: "#RRGGBB" }
+// multipart: category, file (repeatable) — or JSON { category: "color", name, value: "#RRGGBB" } / { category: "shoot", name, value: "https://…" }
 export const POST = route<Ctx>(async (user, req, { params }, e) => {
   const { id: brandId } = await params;
   if (!(await prisma.brand.findUnique({ where: { id: brandId }, select: { id: true } }))) return e("err.noBrand", 404);
 
   if ((req.headers.get("content-type") || "").includes("application/json")) {
     const b = await req.json().catch(() => ({}));
+    if (b.category === "shoot") {
+      let u: URL;
+      try { u = new URL(String(b.value ?? "").trim()); } catch { return e("err.badLink"); }
+      if (!/^https?:$/.test(u.protocol) || u.href.length > 2000) return e("err.badLink");
+      const name = str(b.name, 120)?.trim() || u.hostname.replace(/^www\./, "");
+      const a = await prisma.brandAsset.create({ data: { brandId, category: "shoot", name, value: u.href, uploadedById: user.id } });
+      return json(pub(a), 201);
+    }
     const value = typeof b.value === "string" ? b.value.trim() : "";
     if (!HEX.test(value)) return e("err.badHex");
     const a = await prisma.brandAsset.create({ data: { brandId, category: "color", name: str(b.name, 60)?.trim() || value.toUpperCase(), value: value.toUpperCase(), uploadedById: user.id } });
@@ -29,7 +37,7 @@ export const POST = route<Ctx>(async (user, req, { params }, e) => {
 
   const form = await req.formData();
   const category = String(form.get("category"));
-  if (!CATEGORIES.includes(category) || category === "color") return e("err.badCategory");
+  if (!CATEGORIES.includes(category) || category === "color" || category === "shoot") return e("err.badCategory");
   const files = form.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
   if (!files.length) return e("err.noFiles");
   const tooBig = files.find((f) => f.size > MAX_UPLOAD);
