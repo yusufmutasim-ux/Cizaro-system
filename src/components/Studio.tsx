@@ -9,10 +9,11 @@ import { Avatar } from "./Avatar";
 import { I, type IconName } from "./Icons";
 import { useI18n } from "./I18n";
 import TaskSheet from "./TaskSheet";
+import { UpcomingTicker, UpcomingSheet, visibleUpcoming } from "./Upcoming";
 import { Segmented, useFlip } from "./Motion";
 import { BrandMark, BrandSignature, useBrandTheme } from "./BrandMark";
 import { STATUSES, ref, statusColor, type Status } from "@/lib/vocab";
-import { api, dayDiff, isOpen, today, type Brand, type Task, type User } from "@/lib/client";
+import { api, dayDiff, isOpen, today, type Brand, type Task, type Upcoming, type User } from "@/lib/client";
 
 type Tile = "today" | "late" | "review" | "mine";
 const PRANK: Record<string, number> = { urgent: 0, high: 1, normal: 2, low: 3 };
@@ -42,6 +43,10 @@ export default function Studio() {
   const [fAssignee, setFAssignee] = useState("");
   const [fType, setFType] = useState("");
   const [open, setOpen] = useState<number | "draft" | null>(null);
+  const [seed, setSeed] = useState<Record<string, string> | undefined>(undefined);
+  const newDraft = useCallback((s?: Record<string, string>) => { setSeed(s); setOpen("draft"); }, []);
+  const upcomingQ = useData<Upcoming[]>("/api/upcoming", 60000);
+  const [upOpen, setUpOpen] = useState<{ add: boolean } | null>(null);
   const [toast, setToast] = useState("");
   const [dragId, setDragId] = useState<number | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
@@ -67,22 +72,23 @@ export default function Studio() {
 
   // The floating + button lives in the app frame
   const firstTick = useRef(newTick);
-  useEffect(() => { if (newTick !== firstTick.current) setOpen("draft"); }, [newTick]);
+  useEffect(() => { if (newTick !== firstTick.current) newDraft(); }, [newTick]);
 
   // Opening a notification lands on /?task=<id>
   useEffect(() => {
     const id = Number(params.get("task"));
     if (id) { setOpen(id); router.replace("/", { scroll: false }); }
+    if (params.get("upcoming")) { setUpOpen({ add: false }); router.replace("/", { scroll: false }); }
   }, [params, router]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = document.activeElement?.tagName || "";
-      if (e.key === "n" && open === null && !/INPUT|TEXTAREA|SELECT/.test(tag)) { e.preventDefault(); setOpen("draft"); }
+      if (e.key === "n" && open === null && !upOpen && !/INPUT|TEXTAREA|SELECT/.test(tag)) { e.preventDefault(); newDraft(); }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, upOpen]);
 
   const userById = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u])), [users]);
   const brandById = useMemo(() => Object.fromEntries(brands.map((b) => [b.id, b])), [brands]);
@@ -183,7 +189,7 @@ export default function Studio() {
               onDrop={(e) => { e.preventDefault(); setOverCol(null); const x = all.find((y) => y.id === dragId); if (x) move(x, s.k); }}>
               <div className="col-h">
                 <span className="sd" style={{ background: s.c, color: s.c }} />{i.status(s.k)}<span className="c">{items.length}</span>
-                {s.k === "new" && <button type="button" className="add" aria-label={t("nav.new")} onClick={() => setOpen("draft")}><I name="plus" /></button>}
+                {s.k === "new" && <button type="button" className="add" aria-label={t("nav.new")} onClick={() => newDraft()}><I name="plus" /></button>}
               </div>
               <div className="col-b">
                 {items.length ? items.map(card) : <div className="col-empty">{s.k === "new" ? t("col.emptyNew") : t("col.emptyDrop")}</div>}
@@ -244,7 +250,7 @@ export default function Studio() {
   else if (!all.length) content = (
     <div className="empty"><div className="big"><I name="tray" /></div><h2>{t("empty.title")}</h2>
       <p>{t("empty.body")}</p>
-      <button type="button" className="btn btn-primary" onClick={() => setOpen("draft")}><I name="plus" />{t("empty.cta")}</button></div>
+      <button type="button" className="btn btn-primary" onClick={() => newDraft()}><I name="plus" />{t("empty.cta")}</button></div>
   );
   else if (!visible.length) content = (
     <div className="empty"><div className="big"><I name="search" /></div><h2>{t("empty.noResults")}</h2><p>{t("empty.noResultsBody")}</p>
@@ -262,7 +268,7 @@ export default function Studio() {
             <div className="sub">{i.longDate(new Date())} · {t("tasks.openCount", { n: all.filter(isOpen).length })}</div>
           </div>
           <div className="actions">
-            <button className="btn btn-primary" type="button" onClick={() => setOpen("draft")}><I name="plus" />{t("nav.new")}</button>
+            <button className="btn btn-primary" type="button" onClick={() => newDraft()}><I name="plus" />{t("nav.new")}</button>
           </div>
         </section>
 
@@ -285,6 +291,8 @@ export default function Studio() {
                   options={[...branches.map((b) => ({ value: b.id, label: <><span className="branch-code">{b.code}</span>{i.l === "ar" ? b.name : b.nameEn}</> })), { value: "all", label: t("branch.all") }]} />}
           </div>
         )}
+
+        <UpcomingTicker key={`upc-${brand}-${branch}`} items={visibleUpcoming(upcomingQ.data ?? [], { brand, branch })} brands={brands} canAdd={isManager} onOpen={(add) => setUpOpen({ add: !!add })} />
 
         <section className="tiles" key={`tiles-${brand}`} aria-label={t("tasks.title")}>
           {tiles.map((x) => (
@@ -310,8 +318,13 @@ export default function Studio() {
       </main>
 
       {open !== null && (
-        <TaskSheet key={String(open)} id={open} me={me} users={users} userById={userById} brands={brands} defaultBrandId={brand !== "all" ? brand : brands[0]?.id} defaultBranchId={branch !== "all" ? branch : undefined}
+        <TaskSheet key={String(open)} id={open} me={me} users={users} userById={userById} brands={brands} defaultBrandId={brand !== "all" ? brand : brands[0]?.id} defaultBranchId={branch !== "all" ? branch : undefined} seed={open === "draft" ? seed : undefined}
           onClose={() => setOpen(null)} onChanged={load} onCreated={(id) => setOpen(id)} say={say} />
+      )}
+      {upOpen && (
+        <UpcomingSheet items={visibleUpcoming(upcomingQ.data ?? [], { brand, branch })} brands={brands} isManager={isManager} defaultBrand={brand !== "all" ? brand : ""}
+          startAdding={upOpen.add} onClose={() => setUpOpen(null)} say={say}
+          onStartTask={(x) => { setUpOpen(null); newDraft({ title: x.title, brief: x.note, due: x.date ?? "", ...(x.brandId ? { brandId: x.brandId } : {}), ...(x.branchId ? { branchId: x.branchId } : {}) }); }} />
       )}
       <Portal><div className={`toast ${toast ? "on" : ""}`} role="status" aria-live="polite">{toast}</div></Portal>
     </>

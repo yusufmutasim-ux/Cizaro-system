@@ -19,6 +19,7 @@ type Props = {
   brands: Brand[];
   defaultBrandId?: string;
   defaultBranchId?: string;
+  seed?: Partial<Form>; // prefill for a new task (e.g. from an Upcoming item)
   onClose: () => void;
   onChanged: () => void;
   onCreated: (id: number) => void;
@@ -28,7 +29,7 @@ type Props = {
 type Form = { title: string; brief: string; type: string; size: string; due: string; priority: string; assigneeId: string; brandId: string; branchId: string };
 const fromTask = (x: Task): Form => ({ brandId: x.brandId ?? "", branchId: x.branchId ?? "", title: x.title, brief: x.brief, type: x.type, size: x.size, due: x.due ?? "", priority: x.priority, assigneeId: x.assigneeId ?? "" });
 
-export default function TaskSheet({ id, me, users, userById, brands, defaultBrandId, defaultBranchId, onClose, onChanged, onCreated, say }: Props) {
+export default function TaskSheet({ id, me, users, userById, brands, defaultBrandId, defaultBranchId, seed, onClose, onChanged, onCreated, say }: Props) {
   const i = useI18n();
   const { t } = i;
   const isDraft = id === "draft";
@@ -38,7 +39,7 @@ export default function TaskSheet({ id, me, users, userById, brands, defaultBran
   const [activity, setActivity] = useState<Activity[]>([]);
   const [files, setFiles] = useState<FileRow[]>([]);
   const [pending, setPending] = useState<FileRow[]>([]);
-  const [form, setForm] = useState<Form>({ brandId: defaultBrandId ?? "", branchId: "", title: "", brief: "", type: "social", size: "1080×1350", due: "", priority: "normal", assigneeId: "" });
+  const [form, setForm] = useState<Form>(() => ({ brandId: defaultBrandId ?? "", branchId: "", title: "", brief: "", type: "social", size: "1080×1350", due: "", priority: "normal", assigneeId: "", ...seed }));
   const [note, setNote] = useState("");
   const [comment, setComment] = useState("");
   const [links, setLinks] = useState({ ref: "", delivery: "" });

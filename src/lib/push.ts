@@ -22,7 +22,7 @@ async function setup(): Promise<string> {
 
 export const publicKey = () => (ready ??= setup());
 
-export const NOTIFY_KINDS = ["assigned", "review", "changes", "approved", "comment", "note"] as const;
+export const NOTIFY_KINDS = ["assigned", "review", "changes", "approved", "comment", "note", "upcoming"] as const;
 export type NotifyKind = (typeof NOTIFY_KINDS)[number];
 type Message = { kind: NotifyKind | "test"; title: Key; body?: Key; text?: string; vars?: Record<string, string>; url?: string; tag?: string };
 
