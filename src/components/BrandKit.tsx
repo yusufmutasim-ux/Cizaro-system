@@ -11,11 +11,12 @@ import { BrandMark, BrandSignature, useBrandTheme } from "./BrandMark";
 import { api, kb, type Brand, type BrandAsset, type User } from "@/lib/client";
 import type { Key } from "@/lib/i18n";
 
-type Cat = "logo" | "font" | "color" | "guideline" | "template" | "other";
+type Cat = "logo" | "font" | "color" | "shoot" | "guideline" | "template" | "other";
 const SECTIONS: { k: Cat; icon: IconName; accept?: string }[] = [
   { k: "logo", icon: "photo", accept: "image/*,.svg,.ai,.eps,.pdf" },
   { k: "font", icon: "doc", accept: ".ttf,.otf,.woff,.woff2,.zip" },
   { k: "color", icon: "circle" },
+  { k: "shoot", icon: "photo" },
   { k: "guideline", icon: "doc", accept: ".pdf,image/*" },
   { k: "template", icon: "grid" },
   { k: "other", icon: "clip" },
@@ -23,6 +24,8 @@ const SECTIONS: { k: Cat; icon: IconName; accept?: string }[] = [
 
 const href = (a: BrandAsset, download = false) => `/api/brand-assets/${a.id}${download ? "?download=1" : ""}`;
 const ext = (n: string) => (n.split(".").pop() ?? "").toUpperCase().slice(0, 5);
+const hostOf = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
+const isImageUrl = (u: string) => /\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(u);
 
 export default function BrandKit() {
   const { me } = useApp();
@@ -39,6 +42,8 @@ export default function BrandKit() {
   const [uploading, setUploading] = useState<Partial<Record<Cat, number>>>({});
   const [armed, setArmed] = useState<string | null>(null);
   const [color, setColor] = useState({ name: "", value: "#3B47B0" });
+  const [shoot, setShoot] = useState({ name: "", url: "" });
+  const [adding, setAdding] = useState(false);
   const [newBrand, setNewBrand] = useState<{ name: string; color: string } | null>(null);
   const toastT = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [delBrand, setDelBrand] = useState<string | null>(null); // null = closed; otherwise the brand tasks move to
@@ -61,7 +66,7 @@ export default function BrandKit() {
   const brand = brands.find((b) => b.id === brandId);
   useBrandTheme(brand);
   const by = useMemo(() => {
-    const m: Record<Cat, BrandAsset[]> = { logo: [], font: [], color: [], guideline: [], template: [], other: [] };
+    const m: Record<Cat, BrandAsset[]> = { logo: [], font: [], color: [], shoot: [], guideline: [], template: [], other: [] };
     (assets ?? []).forEach((a) => (m[a.category as Cat] ?? m.other).push(a));
     return m;
   }, [assets]);
@@ -87,6 +92,29 @@ export default function BrandKit() {
     e.preventDefault();
     try { await api(`/api/brands/${brandId}/assets`, { method: "POST", json: { category: "color", ...color } }); setColor({ name: "", value: color.value }); loadAssets(); }
     catch (err) { say((err as Error).message); }
+  }
+
+  // One or more links pasted at once; each becomes its own entry
+  async function addShoot(e: React.FormEvent) {
+    e.preventDefault();
+    const urls = shoot.url.split(/\s+/).map((u) => u.trim()).filter(Boolean);
+    if (!urls.length) { say(t("err.badLink")); return; }
+    setAdding(true);
+    let n = 0;
+    try {
+      for (const [k, value] of urls.entries()) {
+        const name = shoot.name.trim() && urls.length > 1 ? `${shoot.name.trim()} ${k + 1}` : shoot.name.trim();
+        await api(`/api/brands/${brandId}/assets`, { method: "POST", json: { category: "shoot", name, value } });
+        n++;
+      }
+      setShoot({ name: "", url: "" });
+      say(t("kit.shootAdded", { n }));
+    } catch (err) {
+      say((err as Error).message);
+      if (n) setShoot((s) => ({ ...s, url: urls.slice(n).join("\n") }));
+    }
+    setAdding(false);
+    loadAssets(); loadBrands();
   }
 
   async function remove(a: BrandAsset) {
@@ -145,7 +173,7 @@ export default function BrandKit() {
       <section key={s.k} className="kit-sec" data-flip={`sec-${s.k}`}>
         <div className="group-h">
           <I name={s.icon} />{t(`kit.${s.k}` as Key)}<span style={{ color: "var(--ink-3)", fontWeight: 500 }}>{items.length || ""}</span>
-          {isManager && s.k !== "color" && (
+          {isManager && s.k !== "color" && s.k !== "shoot" && (
             <span className="act">
               <label style={{ cursor: "pointer", display: "inline-flex", gap: 4, alignItems: "center" }}>
                 <I name="plus" />{busy ? t("kit.uploading") : t("kit.upload")}
@@ -212,6 +240,38 @@ export default function BrandKit() {
                 <input type="text" id="c-hex" dir="ltr" className="mono" value={color.value} onChange={(e) => setColor({ ...color, value: e.target.value })} aria-label="HEX" />
                 <input type="text" id="c-name" placeholder={t("kit.colorName")} value={color.name} onChange={(e) => setColor({ ...color, name: e.target.value })} />
                 <button className="btn btn-primary"><I name="plus" />{t("kit.add")}</button>
+              </form>
+            )}
+          </>
+        )}
+
+        {s.k === "shoot" && (
+          <>
+            <div className="group kit-list">
+              {items.map((a) => {
+                const u = a.value ?? "";
+                return (
+                  <div key={a.id} className="kit-file kit-shoot" data-flip={a.id}>
+                    <a href={u} target="_blank" rel="noopener noreferrer" className="kit-ico" aria-label={a.name}>
+                      {isImageUrl(u) ? <img src={u} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <I name="link" />}
+                    </a>
+                    <div className="kit-meta grow"><span className="kit-name" title={a.name}>{a.name}</span><small className="kit-host" dir="ltr" title={u}>{hostOf(u)}</small></div>
+                    <div className="kit-acts">
+                      <a className="btn btn-gray" href={u} target="_blank" rel="noopener noreferrer">{t("kit.open")}</a>
+                      <button type="button" className="btn btn-gray kit-copy" onClick={async () => { try { await navigator.clipboard.writeText(u); } catch {} say(t("kit.linkCopied")); }} aria-label={t("kit.copyLink")} title={t("kit.copyLink")}><I name="clip" /></button>
+                      {del(a)}
+                    </div>
+                  </div>
+                );
+              })}
+              {!items.length && <div className="files-empty">{t(isManager ? "kit.shootEmpty" : "kit.empty")}</div>}
+            </div>
+            {isManager && (
+              <form className="kit-addcolor kit-addshoot group" onSubmit={addShoot}>
+                <input type="text" id="sh-name" placeholder={t("kit.shootName")} value={shoot.name} onChange={(e) => setShoot({ ...shoot, name: e.target.value })} />
+                <textarea id="sh-url" dir="ltr" rows={1} placeholder={t("kit.shootUrl")} value={shoot.url} onChange={(e) => setShoot({ ...shoot, url: e.target.value })}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
+                <button className="btn btn-primary" disabled={adding}><I name="plus" />{t("kit.add")}</button>
               </form>
             )}
           </>
